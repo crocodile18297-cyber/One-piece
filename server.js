@@ -12,7 +12,7 @@ const boss={hp:900,maxHp:900,x:0,z:-15,phase:"idle",nextAttack:Date.now()+6500};
 let bossTimer=null,bossResetTimer=null;
 app.get("/health",(req,res)=>res.json({ok:true,game:"One Piece Grand Arena",players:players.size,bossHp:boss.hp}));
 function sendBoss(){io.emit("boss-state",{hp:boss.hp,maxHp:boss.maxHp,phase:boss.phase,x:boss.x,z:boss.z})}
-function damageBoss(amount,owner){if(boss.hp<=0)return;boss.hp=Math.max(0,boss.hp-Math.max(1,Math.round(amount)));boss.lastHit=owner;sendBoss();if(boss.hp===0){io.emit("boss-defeated",{by:owner});boss.phase="defeated";clearTimeout(bossResetTimer);bossResetTimer=setTimeout(()=>{boss.hp=boss.maxHp;boss.phase="idle";boss.nextAttack=Date.now()+6500;sendBoss()},18000)}}
+function damageBoss(amount,owner){if(boss.hp<=0)return;boss.hp=Math.max(0,boss.hp-Math.max(1,Math.round(amount)));boss.lastHit=owner;sendBoss();if(boss.hp===0){io.emit("boss-defeated",{by:owner});const winner=players.get(owner);if(winner){winner.skillPoints+=1;io.to(owner).emit("progress",{skillPoints:winner.skillPoints,unlocked:winner.unlocked})}boss.phase="defeated";clearTimeout(bossResetTimer);bossResetTimer=setTimeout(()=>{boss.hp=boss.maxHp;boss.phase="idle";boss.nextAttack=Date.now()+6500;sendBoss()},18000)}}
 io.on("connection",socket=>{
  const p={id:socket.id,name:"Pirate",x:0,z:0,gear:2,hp:100,maxHp:100,stamina:100,blocking:false,haki:false,kingHaki:false,skillPoints:0,unlocked:[]};
  players.set(socket.id,p);socket.emit("welcome",{id:socket.id,players:[...players.values()]});socket.broadcast.emit("player-joined",p);sendBoss();socket.emit("progress",{skillPoints:p.skillPoints,unlocked:p.unlocked});
