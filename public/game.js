@@ -202,7 +202,7 @@ function animate(){
  }
  if(t-lastSend>.06){socket.emit("move",{x:local.position.x,y:local.position.y,z:local.position.z,yaw,gear});lastSend=t}
  for(let i=effects.length-1;i>=0;i--){const f=effects[i];f.mesh.position.addScaledVector(f.dir,f.speed);f.life--;f.mesh.scale.multiplyScalar(1.035);if(f.life<=0){scene.remove(f.mesh);effects.splice(i,1)}}
- const horizontal=Math.cos(cameraPitch)*cameraDistance,vertical=Math.sin(cameraPitch)*cameraDistance;const target=new THREE.Vector3(local.position.x-Math.sin(cameraYaw)*horizontal,local.position.y+1.35+vertical,local.position.z-Math.cos(cameraYaw)*horizontal);
- camera.position.lerp(target,.16);camera.lookAt(local.position.x,local.position.y+1.35,local.position.z);renderer.render(scene,camera)
+ const horizontal=Math.cos(cameraPitch)*cameraDistance,vertical=Math.sin(cameraPitch)*cameraDistance;const target=new THREE.Vector3(local.position.x-Math.sin(cameraYaw)*horizontal,local.position.y+1.65+vertical,local.position.z-Math.cos(cameraYaw)*horizontal);
+ camera.position.lerp(target,.16);camera.lookAt(local.position.x,local.position.y+1.65,local.position.z);renderer.render(scene,camera)
 }
 animate();addEventListener("resize",()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
