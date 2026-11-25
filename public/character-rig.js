@@ -149,9 +149,10 @@ export function updateCharacterAnimation(actor, delta, moving, grounded, blockin
       (hit.kind === "kong" || hit.kind === "redhawk") ? "heavyPunch" :
       hit.kind === "rifle" ? "kick" : "punch";
     loop = false;
-  } else if (!grounded) { animation = "jump"; loop = false; }
+  } else if (hitLive && hit.kind === "dodge") { animation = "dodge"; loop = false; }
+  else if (!grounded) { animation = "jump"; loop = false; }
   else if (blocking) animation = "block";
-  else if (moving) animation = "walk";
+  else if (moving) animation = actor.userData.running ? "run" : "walk";
   play(actor, animation, loop);
   actor.userData.mixer?.update(delta);
 }
