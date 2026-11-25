@@ -49,7 +49,7 @@ function setCharacterHaki(character,on){
 }
 const local=pirate();scene.add(local);applyCharacterGear(local,2);setCharacterHaki(local,false);const others=new Map(),effects=[];
 let gear5Template=null;
-const gear5ChunkUrls=Array.from({length:11},(_,i)=>"/assets/gear5/part-"+String(i).padStart(2,"0")+".b64");
+const gear5ChunkUrls=Array.from({length:15},(_,i)=>"/assets/gear5/part-"+String(i).padStart(2,"0")+".b64");
 loadGear5Asset(gear5ChunkUrls).then(template=>{
  gear5Template=template;
  installGear5Asset(local,template);applyCharacterGear(local,gear);
