@@ -1,370 +1,361 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 
-/*
- * Grand Arena character workshop.
- * Four distinct silhouettes share a transform rig so existing multiplayer
- * movement and combat code can drive every form.
- */
+/* Grand Arena Character Workshop v3
+   Distinct, taller anime-game silhouettes for Gear 2/3/4/5.
+   Rig contract intentionally matches public/game.js. */
+
 export function createPirate() {
   const root = new THREE.Group();
-  root.name = "GrandArena_Luffy_4Forms";
-  const material = (color, roughness=.68, metalness=0, extra={}) =>
-    new THREE.MeshStandardMaterial({color,roughness,metalness,...extra});
+  root.name = "GrandArena_Luffy_Character_v3";
+
+  const mat = (color, roughness=.68, metalness=0, extra={}) =>
+    new THREE.MeshStandardMaterial({color, roughness, metalness, ...extra});
   const M = {
-    skin:material(0xf3bc91,.72), skinLight:material(0xffd5ad,.72),
-    skinShade:material(0xc98261,.78), blush:material(0xd98675,.85),
-    hair:material(0x17191d,.48), hairHi:material(0x34343a,.5),
-    eyeWhite:material(0xfff7e9,.32), iris:material(0x4a2d20,.28),
-    pupil:material(0x11151a,.18), mouth:material(0x54212a,.65),
-    teeth:material(0xfff8df,.28), tongue:material(0xe45e68,.42),
-    red:material(0xc92e29,.7), redDark:material(0x7e1c20,.74),
-    redLight:material(0xed5746,.55), denim:material(0x2462a4,.82),
-    denimDark:material(0x123d73,.82), denimLight:material(0x4c89c8,.72),
-    straw:material(0xe7b957,.85), strawLight:material(0xffd878,.82),
-    strawDark:material(0x9b672f,.85), hatBand:material(0xb8272b,.72),
-    yellow:material(0xf2c34d,.62), gold:material(0xe9b64d,.3,.62),
-    dark:material(0x202229,.58), sandal:material(0x38241d,.78),
-    sole:material(0x211b1a,.9), white:material(0xf6f2e9,.85),
-    whiteHi:material(0xffffff,.58), cloud:material(0xf8f7f2,.86),
-    cloudShade:material(0xd8e1e4,.86), blackHaki:material(0x171820,.28,.2),
-    hakiHi:material(0x45404f,.31,.25), purple:material(0x56359a,.56,.16),
-    purpleHi:material(0x9c67ed,.45,.16), flame:material(0xff5529,.34,.08,{emissive:0xa91c08,emissiveIntensity:.42}),
-    flameGold:material(0xffc44f,.35,.06,{emissive:0xb86b12,emissiveIntensity:.3}),
-    lightning:material(0xb7f7ff,.24,.12,{emissive:0x45b9eb,emissiveIntensity:1.15}),
-    whiteGlow:material(0xffffff,.25,.04,{emissive:0xdcecff,emissiveIntensity:.48}),
-    seam:material(0x5f2520,.72), stitch:material(0xffd986,.7)
+    skin:mat(0xf1b589,.74), skinHi:mat(0xffd0a6,.74), skinShade:mat(0xc47f5e,.8),
+    skinLine:mat(0xa85f4c,.82), blush:mat(0xd77f75,.82),
+    hair:mat(0x17191e,.5), hairHi:mat(0x34343a,.48),
+    eye:mat(0xfff5df,.26), iris:mat(0x542d1f,.24), pupil:mat(0x101216,.18),
+    eyeShine:mat(0xffffff,.18), brow:mat(0x211d20,.5), mouth:mat(0x5c2730,.62),
+    teeth:mat(0xfff8e8,.32), tongue:mat(0xd95866,.5),
+    red:mat(0xc92d27,.72), redShade:mat(0x7b2020,.8), redHi:mat(0xe95a48,.58),
+    blue:mat(0x245b99,.8), blueShade:mat(0x153d6c,.84), blueHi:mat(0x5489bb,.7),
+    straw:mat(0xe5b653,.86), strawHi:mat(0xffd77b,.8), strawShade:mat(0x93652f,.86),
+    band:mat(0xb6282a,.72), yellow:mat(0xf1bd47,.68), gold:mat(0xdca64b,.34,.6),
+    leather:mat(0x4a3027,.85), sole:mat(0x241d1c,.9), white:mat(0xf0eee8,.86),
+    whiteHi:mat(0xffffff,.54), whiteShade:mat(0xd8e0e3,.9), cloud:mat(0xf7f6f1,.88),
+    cloudShade:mat(0xcbd6dc,.86), haki:mat(0x171820,.3,.18), hakiHi:mat(0x4a4354,.34,.2),
+    purple:mat(0x59379b,.55,.18), purpleHi:mat(0xa078df,.42,.16),
+    flame:mat(0xff542a,.32,.05,{emissive:0xa5260a,emissiveIntensity:.35}),
+    flameHi:mat(0xffcf65,.35,.05,{emissive:0xa86b14,emissiveIntensity:.24}),
+    lightning:mat(0xb6efff,.22,.06,{emissive:0x58b9ed,emissiveIntensity:.8}),
+    seam:mat(0x6f2824,.72), stitch:mat(0xffd58b,.65)
   };
 
-  const put = (parent, geometry, mat, position=[0,0,0], scale=[1,1,1], rotation=[0,0,0]) => {
-    const object = new THREE.Mesh(geometry,mat);
-    object.position.set(...position); object.scale.set(...scale);
-    object.rotation.set(...rotation);
-    object.castShadow=true; object.receiveShadow=true;
-    parent.add(object); return object;
+  const add=(parent,geometry,material,pos=[0,0,0],scale=[1,1,1],rot=[0,0,0])=>{
+    const o=new THREE.Mesh(geometry,material);
+    o.position.set(...pos); o.scale.set(...scale); o.rotation.set(...rot);
+    o.castShadow=true; o.receiveShadow=true; parent.add(o); return o;
   };
-  const sphere = (parent,mat,pos,scale,segments=28) =>
-    put(parent,new THREE.SphereGeometry(1,segments,Math.max(16,Math.floor(segments*.72))),mat,pos,scale);
-  const box = (parent,mat,pos,scale,rotation=[0,0,0]) =>
-    put(parent,new THREE.BoxGeometry(1,1,1),mat,pos,scale,rotation);
-  const torus = (parent,mat,pos,major,minor,rotation=[0,0,0],segments=64) =>
-    put(parent,new THREE.TorusGeometry(major,minor,12,segments),mat,pos,[1,1,1],rotation);
-  const tube = (parent,mat,points,radius,segments=64,closed=false) => {
-    const curve = new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)),closed,"catmullrom",.5);
-    return put(parent,new THREE.TubeGeometry(curve,segments,radius,8,closed),mat);
+  const sphere=(p,m,pos,scale,seg=28)=>add(p,new THREE.SphereGeometry(1,seg,Math.max(16,Math.floor(seg*.7))),m,pos,scale);
+  const box=(p,m,pos,scale,rot=[0,0,0])=>add(p,new THREE.BoxGeometry(1,1,1),m,pos,scale,rot);
+  const torus=(p,m,pos,r,t,rot=[0,0,0],seg=56)=>add(p,new THREE.TorusGeometry(r,t,12,seg),m,pos,[1,1,1],rot);
+  const tube=(p,m,pts,r,seg=48,closed=false)=>{
+    const curve=new THREE.CatmullRomCurve3(pts.map(v=>new THREE.Vector3(...v)),closed,"catmullrom",.5);
+    return add(p,new THREE.TubeGeometry(curve,seg,r,8,closed),m);
   };
-  const segment = (parent,mat,a,b,r1,r2=r1,radial=16) => {
+  const capsule=(p,m,pos,r,len,rot=[0,0,0])=>add(p,new THREE.CapsuleGeometry(r,len,6,14),m,pos,[1,1,1],rot);
+  const taper=(p,m,a,b,r1,r2,radial=16)=>{
     const A=new THREE.Vector3(...a),B=new THREE.Vector3(...b),d=B.clone().sub(A);
-    const object=put(parent,new THREE.CylinderGeometry(r2,r1,d.length(),radial,1),mat,A.clone().add(B).multiplyScalar(.5).toArray());
-    object.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());
-    sphere(parent,mat,a,[r1,r1,r1],radial);
-    sphere(parent,mat,b,[r2,r2,r2],radial);
-    return object;
+    const o=add(p,new THREE.CylinderGeometry(r2,r1,d.length(),radial,2),m,A.clone().add(B).multiplyScalar(.5).toArray());
+    o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());
+    return o;
   };
-  const spike = (parent,mat,base,tip,radius) => {
-    const A=new THREE.Vector3(...base),B=new THREE.Vector3(...tip),d=B.clone().sub(A);
-    const object=put(parent,new THREE.ConeGeometry(radius,d.length(),12,2),mat,A.clone().add(B).multiplyScalar(.5).toArray());
-    object.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());
-    return object;
+  const spike=(p,m,a,b,r)=>{
+    const A=new THREE.Vector3(...a),B=new THREE.Vector3(...b),d=B.clone().sub(A);
+    const o=add(p,new THREE.ConeGeometry(r,d.length(),12,2),m,A.clone().add(B).multiplyScalar(.5).toArray());
+    o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());
+    return o;
   };
-  const puff = (parent,mat,pos,scale=[.16,.16,.16]) => sphere(parent,mat,pos,scale,22);
-  const addStitches = (parent,mat,rx,rz,y,count=32,zOffset=0) => {
-    for(let i=0;i<count;i++){
-      const a=i/count*Math.PI*2;
-      sphere(parent,mat,[Math.cos(a)*rx,y,Math.sin(a)*rz+zOffset],[.012,.009,.012],8);
-    }
+  const lathe=(p,m,profile,scale=[1,1,1])=>{
+    const points=profile.map(v=>new THREE.Vector2(v[0],v[1]));
+    return add(p,new THREE.LatheGeometry(points,48),m,[0,0,0],scale);
   };
 
-  // Main body rig and anatomy.
-  const rig={isGLB:false,materials:{skin:M.skin,armament:M.blackHaki},armParts:[],fists:[],shoulders:[],legs:[],arms:[],hairSpikes:[]};
-  rig.torso=new THREE.Group(); rig.torso.position.y=1.42; root.add(rig.torso);
-  sphere(rig.torso,M.skin,[0,.02,0],[.405,.58,.285],40);
-  sphere(rig.torso,M.skinLight,[0,.35,.005],[.34,.29,.265],32);
-  sphere(rig.torso,M.skinShade,[0,-.31,-.005],[.36,.22,.255],30);
-  // Pectorals, clavicles, ribs and sculpted abdominal plates.
+  const rig={isGLB:false,materials:{skin:M.skin,armament:M.haki},arms:[],armParts:[],fists:[],shoulders:[],legs:[],hairSpikes:[]};
+
+  // Leg pivots are higher and legs are longer: avoid the old toy/chibi silhouette.
+  rig.legs=[];
   for(const side of [-1,1]){
-    sphere(rig.torso,M.skin,[side*.185,.22,.205],[.205,.185,.12],28);
-    sphere(rig.torso,M.skinLight,[side*.17,.43,.13],[.19,.045,.045],20);
-    sphere(rig.torso,M.skinShade,[side*.33,-.02,.12],[.055,.2,.065],20);
-    sphere(rig.torso,M.skin,[side*.135,-.02,.235],[.115,.095,.055],22);
-    sphere(rig.torso,M.skin,[side*.135,-.17,.222],[.105,.085,.05],22);
-    sphere(rig.torso,M.skin,[side*.135,-.31,.205],[.09,.068,.046],22);
-    tube(rig.torso,M.skinShade,[[side*.02,.12,.264],[side*.02,-.04,.286],[side*.02,-.2,.26]],.009,18);
+    const leg=new THREE.Group(); leg.position.set(side*.205,1.19,0); root.add(leg); rig.legs.push(leg);
+    capsule(leg,M.skin,[0,-.25,0],.125,.30);
+    sphere(leg,M.skinHi,[side*-.018,-.24,.055],[.078,.20,.09],20);
+    sphere(leg,M.skinShade,[0,-.49,.005],[.12,.055,.12],18);
+    capsule(leg,M.skin,[0,-.73,.005],.092,.30);
+    sphere(leg,M.skinHi,[side*.015,-.7,.075],[.058,.16,.045],18);
+    // Toes, individual sandal sole, leather straps and stitching.
+    box(leg,M.sole,[0,-1.015,.07],[.285,.055,.43]);
+    box(leg,M.leather,[0,-.977,.07],[.26,.032,.39]);
+    tube(leg,M.strawShade,[[-.12,-.955,.255],[0,-.94,.13],[.12,-.955,.255]],.022,20);
+    tube(leg,M.leather,[[0,-.96,.25],[0,-.945,.12],[side*.085,-.955,.02]],.018,18);
+    for(let i=0;i<5;i++)sphere(leg,M.skin,[side*-.075+i*.037,-.952,.27],[.018,.018,.03],10);
+    for(let i=0;i<8;i++)sphere(leg,M.gold,[side*-.11+i*.03,-1.01,.265],[.006,.006,.006],6);
+    torus(leg,M.skinShade,[0,-.87,0],.09,.012,[Math.PI/2,0,0],24);
   }
-  tube(rig.torso,M.skinShade,[[-.3,.38,.13],[0,.48,.16],[.3,.38,.13]],.012,32);
-  tube(rig.torso,M.skinShade,[[0,.16,.282],[0,-.37,.245]],.009,24);
 
-  // Open red vest: separate tailored panels, lapels, hems, seams and buttons.
+  // Shorts sit at the pelvis with shaped legs and a real waistband.
+  rig.shorts=new THREE.Group(); root.add(rig.shorts);
+  lathe(rig.shorts,M.blue,[[.22,.0],[.31,.04],[.34,.16],[.31,.31],[.29,.38],[.0,.38]],[1,1,.82]);
+  for(const side of [-1,1]){
+    const legShort=sphere(rig.shorts,M.blue,[side*.17,-.12,.005],[.18,.25,.255],32);
+    legShort.rotation.z=side*-.035;
+    box(rig.shorts,M.blueShade,[side*.17,-.305,.018],[.31,.055,.42]);
+    for(let i=0;i<8;i++)sphere(rig.shorts,M.stitch,[side*.17-.12+i*.034,-.307,.235],[.008,.008,.006],7);
+    tube(rig.shorts,M.blueShade,[[side*.29,.12,.17],[side*.31,-.05,.19],[side*.30,-.28,.18]],.009,22);
+    box(rig.shorts,M.blueShade,[side*.29,-.08,.226],[.065,.11,.018],[0,0,side*.1]);
+  }
+  box(rig.shorts,M.gold,[0,.16,.28],[.14,.12,.035]);
+  box(rig.shorts,M.strawShade,[0,.16,.301],[.07,.06,.012]);
+
+  // Main torso uses a tapered lathe silhouette, not a stack of round toy parts.
+  rig.torso=new THREE.Group(); rig.torso.position.y=1.92; root.add(rig.torso);
+  lathe(rig.torso,M.skin,[[.20,-.57],[.29,-.48],[.33,-.25],[.37,.02],[.42,.28],[.39,.48],[.30,.62],[.17,.68],[.0,.68]],[1,1,.72]);
+  sphere(rig.torso,M.skinHi,[0,.36,.045],[.31,.23,.225],34);
+  for(const side of [-1,1]){
+    sphere(rig.torso,M.skin,[side*.18,.24,.19],[.19,.16,.09],26);
+    sphere(rig.torso,M.skinHi,[side*.17,.36,.145],[.17,.035,.055],20);
+    sphere(rig.torso,M.skinShade,[side*.30,-.08,.13],[.045,.17,.055],18);
+    sphere(rig.torso,M.skin,[side*.13,-.04,.205],[.095,.065,.034],20);
+    sphere(rig.torso,M.skin,[side*.13,-.19,.19],[.09,.06,.032],20);
+    tube(rig.torso,M.skinShade,[[side*.02,.15,.255],[side*.02,-.02,.25],[side*.02,-.22,.22]],.007,18);
+  }
+  tube(rig.torso,M.skinShade,[[-.27,.39,.12],[0,.46,.17],[.27,.39,.12]],.009,24);
+
+  // Neck, collarbone and shoulder line.
+  capsule(rig.torso,M.skin,[0,.69,0],.105,.13);
+  for(const side of [-1,1])
+    tube(rig.torso,M.skinShade,[[0,.57,.12],[side*.12,.61,.14],[side*.29,.49,.1]],.008,18);
+
+  // Red sleeveless vest with separate flaps, rolled edges and seam work.
   rig.vest=new THREE.Group(); rig.torso.add(rig.vest);
   for(const side of [-1,1]){
-    const panel=sphere(rig.vest,M.red,[side*.205,.105,.225],[.19,.39,.105],32);
-    panel.rotation.z=side*.04;
-    const lapel=box(rig.vest,M.redDark,[side*.115,.34,.314],[.105,.42,.035],[0,0,side*.23]);
-    const lapelHi=box(rig.vest,M.redLight,[side*.18,.32,.329],[.026,.35,.012],[0,0,side*.23]);
-    tube(rig.vest,M.redDark,[[side*.37,.35,.24],[side*.38,.08,.27],[side*.31,-.21,.27]],.012,24);
-    for(let i=0;i<4;i++) sphere(rig.vest,M.gold,[side*.08,-.15+i*.13,.34],[.019,.019,.012],10);
-    // Stitch line on the outer vest seam.
-    for(let i=0;i<9;i++) sphere(rig.vest,M.stitch,[side*(.34+.025*Math.sin(i*.4)), -.2+i*.065,.284],[.008,.012,.008],7);
+    const panel=sphere(rig.vest,M.red,[side*.205,.055,.188],[.165,.405,.072],32);
+    panel.rotation.z=side*.035;
+    const lapel=box(rig.vest,M.redShade,[side*.115,.29,.255],[.09,.39,.025],[0,0,side*.20]);
+    box(rig.vest,M.redHi,[side*.15,.27,.272],[.018,.31,.009],[0,0,side*.20]);
+    tube(rig.vest,M.redShade,[[side*.30,.35,.2],[side*.34,.08,.22],[side*.28,-.25,.2]],.009,24);
+    for(let i=0;i<8;i++)sphere(rig.vest,M.stitch,[side*(.30+.016*Math.sin(i*.5)),-.23+i*.075,.21],[.006,.009,.006],7);
+    for(let i=0;i<4;i++)sphere(rig.vest,M.gold,[side*.075,-.16+i*.13,.267],[.014,.014,.009],10);
   }
-  sphere(rig.vest,M.redDark,[0,-.29,.19],[.31,.055,.105],24);
-  // Waist wrap, folded golden sash, knot and hanging tails.
-  torus(rig.torso,M.yellow,[0,-.385,0],.365,.075,[Math.PI/2,0,0],64);
-  torus(rig.torso,M.gold,[0,-.385,0],.37,.018,[Math.PI/2,0,0],64);
-  sphere(rig.torso,M.yellow,[.04,-.37,.335],[.15,.12,.075],24);
-  sphere(rig.torso,M.gold,[.04,-.37,.398],[.055,.045,.018],16);
-  const sashTail=tube(rig.torso,M.yellow,[[.08,-.38,.33],[.25,-.48,.37],[.37,-.64,.3],[.44,-.78,.22]],.055,32);
-  const sashTail2=tube(rig.torso,M.yellow,[[-.02,-.4,.33],[-.2,-.52,.35],[-.24,-.69,.29],[-.18,-.82,.22]],.042,32);
-  tube(rig.torso,M.gold,[[.12,-.42,.375],[.25,-.52,.39],[.37,-.66,.32]],.009,20);
+  box(rig.vest,M.redShade,[0,-.32,.16],[.48,.045,.05]);
 
-  // Shorts and raised stitched cuffs.
-  rig.shorts=new THREE.Group(); root.add(rig.shorts);
-  sphere(rig.shorts,M.denim,[0,.91,0],[.385,.24,.29],36);
-  for(const side of [-1,1]){
-    sphere(rig.shorts,M.denim,[side*.18,.72,.015],[.19,.25,.275],30);
-    torus(rig.shorts,M.denimDark,[side*.18,.55,0],.175,.028,[Math.PI/2,0,0],40);
-    for(let i=0;i<7;i++) sphere(rig.shorts,M.denimLight,[side*.18-.12+i*.04,.55,.275],[.009,.009,.008],7);
-    tube(rig.shorts,M.denimDark,[[side*.31,.93,.23],[side*.33,.77,.24],[side*.32,.58,.23]],.012,20);
-    box(rig.shorts,M.denimDark,[side*.29,.77,.276],[.09,.1,.025],[0,0,side*.12]);
-    for(let i=0;i<3;i++) sphere(rig.shorts,M.stitch,[side*.29-.025+i*.025,.76,.294],[.007,.007,.006],7);
-  }
-  box(rig.shorts,M.gold,[0,.91,.292],[.15,.13,.035]);
-  box(rig.shorts,M.strawDark,[0,.91,.315],[.075,.065,.012]);
+  // Waist sash with tied knot and two cloth tails.
+  rig.sash=new THREE.Group(); rig.torso.add(rig.sash);
+  torus(rig.sash,M.yellow,[0,-.49,0],.31,.055,[Math.PI/2,0,0],64);
+  torus(rig.sash,M.gold,[0,-.49,0],.315,.012,[Math.PI/2,0,0],64);
+  sphere(rig.sash,M.yellow,[.035,-.48,.285],[.12,.10,.06],22);
+  sphere(rig.sash,M.gold,[.035,-.48,.335],[.04,.035,.015],14);
+  tube(rig.sash,M.yellow,[[.09,-.49,.29],[.22,-.62,.32],[.32,-.78,.25],[.35,-.92,.19]],.04,32);
+  tube(rig.sash,M.yellow,[[-.02,-.51,.29],[-.17,-.63,.31],[-.22,-.78,.25],[-.15,-.91,.18]],.034,30);
+  tube(rig.sash,M.gold,[[.10,-.54,.33],[.22,-.66,.34],[.32,-.80,.27]],.008,24);
 
-  // Articulated legs with thigh and calf forms, knees, ankles and detailed sandals.
-  for(const side of [-1,1]){
-    const leg=new THREE.Group(); leg.position.set(side*.19,.72,0); root.add(leg); rig.legs.push(leg);
-    sphere(leg,M.skin,[0,-.12,0],[.155,.24,.16],26);
-    sphere(leg,M.skinLight,[side*-.025,-.12,.112],[.09,.18,.052],20);
-    sphere(leg,M.skinShade,[0,-.29,.02],[.13,.07,.13],18);
-    sphere(leg,M.skin,[0,-.48,.005],[.115,.21,.125],24);
-    sphere(leg,M.skinLight,[side*.025,-.48,.09],[.07,.15,.045],18);
-    torus(leg,M.skinShade,[0,-.64,0],.106,.018,[Math.PI/2,0,0],24);
-    // Sandal sole, footbed, straps and toe details.
-    box(leg,M.sole,[0,-.68,.075],[.27,.055,.42]);
-    box(leg,M.sandal,[0,-.645,.07],[.255,.035,.39]);
-    tube(leg,M.strawDark,[[-.105,-.62,.23],[0,-.61,.1],[.105,-.62,.23]],.025,18);
-    tube(leg,M.sandal,[[0,-.62,.23],[0,-.61,.12],[side*.07,-.61,.04]],.018,16);
-    for(let i=0;i<5;i++) sphere(leg,M.skin,[side*-.07+i*.035,-.62,.265],[.018,.018,.035],10);
-    for(let i=0;i<8;i++) sphere(leg,M.gold,[side*-.1+i*.028,-.67,.26],[.006,.006,.006],6);
-  }
-
-  // Arms built as shoulder pivots with elbow, forearm, wrist and five-finger hands.
-  function makeHand(parent,scale=1,skinMat=M.skin){
+  // Anatomical shoulder, upper-arm, elbow and forearm assemblies.
+  function makeHand(parent,side=1,scale=1){
     const hand=new THREE.Group(); parent.add(hand);
-    sphere(hand,skinMat,[0,0,0],[.115*scale,.115*scale,.09*scale],24);
+    sphere(hand,M.skin,[0,0,0],[.095*scale,.10*scale,.085*scale],22);
     for(let i=0;i<4;i++){
-      const x=(i-1.5)*.052*scale, length=(.105+(.02-Math.abs(i-1.5)*.008))*scale;
-      segment(hand,skinMat,[x,-.025*scale,.015*scale],[x*1.08,-length,.055*scale],.024*scale,.018*scale,10);
-      sphere(hand,M.skinLight,[x*1.08,-length,.074*scale],[.012*scale,.012*scale,.008*scale],8);
+      const x=(i-1.5)*.047*scale, length=(.10+(.018-Math.abs(i-1.5)*.006))*scale;
+      taper(hand,M.skin,[x,-.025*scale,.012],[x*1.06,-length,.04],.019*scale,.013*scale,10);
+      sphere(hand,M.skinHi,[x*1.06,-length,.05],[.012*scale,.012*scale,.008*scale],8);
     }
-    const thumb=new THREE.Group(); thumb.position.set(.105*scale,-.005*scale,0); hand.add(thumb);
-    segment(thumb,skinMat,[0,0,0],[.065*scale,-.07*scale,.045*scale],.032*scale,.022*scale,10);
-    sphere(thumb,skinMat,[.065*scale,-.07*scale,.045*scale],[.025*scale,.027*scale,.023*scale],10);
+    const thumb=new THREE.Group(); thumb.position.set(side*.09*scale,-.005*scale,0); hand.add(thumb);
+    taper(thumb,M.skin,[0,0,0],[side*.055*scale,-.06*scale,.035*scale],.027*scale,.017*scale,10);
     return hand;
   }
   for(const side of [-1,1]){
-    const arm=new THREE.Group(); arm.position.set(side*.455,.48,0); rig.torso.add(arm); rig.arms.push(arm);
-    const shoulder=sphere(arm,M.skin,[0,-.055,0],[.19,.19,.18],28);
-    sphere(arm,M.skinLight,[side*.04,-.08,.12],[.13,.12,.07],20);
-    const upper=sphere(arm,M.skin,[side*.012,-.23,.005],[.145,.245,.145],28);
-    const bicep=sphere(arm,M.skinLight,[side*.045,-.22,.105],[.095,.18,.07],22);
-    const elbow=sphere(arm,M.skinShade,[0,-.405,.015],[.12,.12,.12],20);
-    const fore=sphere(arm,M.skin,[side*.008,-.56,.02],[.135,.235,.14],28);
-    sphere(arm,M.skinLight,[side*.02,-.55,.125],[.085,.18,.055],20);
-    const wrist=torus(arm,M.skinShade,[0,-.735,.025],.105,.016,[Math.PI/2,0,0],24);
-    const hand=makeHand(arm,1,M.skin); hand.position.set(0,-.82,.055);
-    rig.armParts.push(upper,fore); rig.fists.push(hand); rig.shoulders.push(shoulder);
-    arm.userData={upper,fore,elbow,hand};
+    const arm=new THREE.Group(); arm.position.set(side*.405,.43,0); rig.torso.add(arm); rig.arms.push(arm);
+    const shoulder=sphere(arm,M.skin,[0,-.045,0],[.16,.16,.15],28);
+    sphere(arm,M.skinHi,[side*.025,-.09,.095],[.11,.13,.065],20);
+    const bicep=capsule(arm,M.skin,[0,-.235,0],.105,.25);
+    sphere(arm,M.skinHi,[side*.035,-.23,.07],[.07,.16,.05],18);
+    sphere(arm,M.skinShade,[0,-.405,.005],[.095,.095,.095],18);
+    const fore=capsule(arm,M.skin,[0,-.59,.015],.085,.25);
+    sphere(arm,M.skinHi,[side*.015,-.57,.065],[.055,.15,.038],18);
+    torus(arm,M.skinShade,[0,-.74,.015],.075,.01,[Math.PI/2,0,0],20);
+    const hand=makeHand(arm,side,1); hand.position.set(0,-.79,.04);
+    rig.armParts.push(bicep,fore); rig.fists.push(hand); rig.shoulders.push(shoulder);
+    arm.userData={bicep,fore,hand};
   }
 
-  // Neck and head pivot.
-  sphere(rig.torso,M.skin,[0,.68,0],[.14,.19,.14],24);
-  rig.head=new THREE.Group(); rig.head.position.set(0,.84,.015); rig.torso.add(rig.head);
-  sphere(rig.head,M.skin,[0,0,0],[.315,.385,.285],40);
-  sphere(rig.head,M.skinLight,[0,-.09,.105],[.27,.22,.22],32);
-  // Jawline and ears.
+  // Head shape and face: smaller head, defined jaw, large expressive anime eyes.
+  rig.head=new THREE.Group(); rig.head.position.set(0,.80,.012); rig.torso.add(rig.head);
+  sphere(rig.head,M.skin,[0,0,0],[.265,.315,.238],44);
+  sphere(rig.head,M.skinHi,[0,-.095,.075],[.225,.18,.19],30);
+  // Jaw/chin tapers downward.
+  sphere(rig.head,M.skin,[0,-.205,.055],[.16,.12,.16],26);
   for(const side of [-1,1]){
-    sphere(rig.head,M.skin,[side*.29,-.04,0],[.075,.105,.095],18);
-    sphere(rig.head,M.skinShade,[side*.315,-.04,.03],[.035,.055,.045],12);
-    sphere(rig.head,M.skinLight,[side*.27,-.04,.055],[.018,.038,.018],10);
+    sphere(rig.head,M.skin,[side*.245,-.02,0],[.055,.08,.07],18);
+    sphere(rig.head,M.skinShade,[side*.255,-.02,.035],[.025,.045,.02],12);
+    // Eye whites are slightly angled rather than circular dots.
+    const white=sphere(rig.head,M.eye,[side*.102,.035,.214],[.061,.069,.024],24);
+    white.rotation.z=side*-.10;
+    sphere(rig.head,M.iris,[side*.102,.026,.237],[.028,.043,.014],20);
+    sphere(rig.head,M.pupil,[side*.102,.023,.248],[.014,.03,.009],16);
+    sphere(rig.head,M.eyeShine,[side*.113,.045,.256],[.009,.012,.006],10);
+    tube(rig.head,M.brow,[[side*.17,.122,.2],[side*.105,.145,.23],[side*.04,.12,.22]],.012,18);
   }
-  // Eyes with iris rings, pupils, reflected highlights and brows.
-  for(const side of [-1,1]){
-    sphere(rig.head,M.eyeWhite,[side*.12,.035,.254],[.075,.092,.042],24);
-    sphere(rig.head,M.iris,[side*.12,.025,.291],[.036,.054,.018],20);
-    sphere(rig.head,M.pupil,[side*.12,.022,.306],[.018,.036,.012],16);
-    sphere(rig.head,M.whiteGlow,[side*.132,.048,.318],[.011,.014,.007],10);
-    tube(rig.head,M.hair,[[side*.205,.13,.246],[side*.125,.155,.282],[side*.045,.13,.27]],.017,20);
-    tube(rig.head,M.skinShade,[[side*.20,-.025,.25],[side*.13,-.08,.28],[side*.055,-.06,.285]],.008,16);
-  }
-  // Nose, mouth, teeth and signature small scar beneath left eye.
-  sphere(rig.head,M.skinShade,[0,-.045,.29],[.026,.052,.026],16);
-  sphere(rig.head,M.skinLight,[0,-.072,.303],[.018,.016,.009],10);
-  tube(rig.head,M.mouth,[[-.105,-.185,.254],[-.06,-.215,.275],[0,-.225,.28],[.07,-.21,.27],[.11,-.18,.25]],.014,22);
-  for(let i=0;i<5;i++) box(rig.head,M.teeth,[-.065+i*.032,-.198,.285],[.022,.024,.008]);
-  tube(rig.head,M.redDark,[[.11,-.025,.284],[.16,-.06,.286],[.19,-.10,.27]],.009,16);
-  tube(rig.head,M.skinShade,[[-.19,-.02,.275],[-.16,-.07,.294],[-.13,-.12,.288]],.008,14);
+  sphere(rig.head,M.skinShade,[0,-.045,.238],[.019,.045,.018],14);
+  // Scar under the left eye and subtle cheek line.
+  tube(rig.head,M.redShade,[[-.17,-.005,.218],[-.145,-.045,.239],[-.12,-.09,.226]],.007,16);
+  tube(rig.head,M.skinShade,[[.12,-.115,.20],[.17,-.14,.18]],.006,12);
+  tube(rig.head,M.mouth,[[-.09,-.175,.204],[-.05,-.193,.22],[0,-.20,.222],[.055,-.19,.22],[.095,-.17,.20]],.012,20);
+  for(let i=0;i<4;i++)box(rig.head,M.teeth,[-.05+i*.033,-.18,.224],[.026,.016,.007]);
 
-  // Black hair cap and separated pointed locks.
+  // Black hair cap with shaped swept locks, not a ring of round spikes.
   rig.hair=new THREE.Group(); rig.head.add(rig.hair);
-  sphere(rig.hair,M.hair,[0,.215,-.015],[.32,.205,.275],34);
-  for(let i=0;i<13;i++){
-    const a=i/13*Math.PI*2, bx=Math.cos(a)*.245, bz=Math.sin(a)*.21;
-    const tip=[bx+Math.cos(a)*.12,.19+(.09*Math.sin(i*2.1)),bz+Math.sin(a)*.15];
-    spike(rig.hair,i%3===0?M.hairHi:M.hair,[bx,.23,bz],tip,.075);
-    sphere(rig.hair,M.hair,[bx,.22,bz],[.085,.07,.08],14);
+  sphere(rig.hair,M.hair,[0,.18,-.025],[.275,.17,.235],36);
+  const locks=[
+    [[-.22,.24,.08],[-.28,.34,.02],[-.36,.32,-.02]],
+    [[-.15,.31,.10],[-.17,.43,.05],[-.25,.46,.0]],
+    [[-.06,.33,.12],[-.03,.46,.08],[-.11,.52,.02]],
+    [[.05,.33,.12],[.12,.45,.08],[.08,.50,.015]],
+    [[.16,.29,.10],[.25,.39,.04],[.30,.36,-.02]],
+    [[.23,.18,.02],[.33,.23,-.02],[.36,.17,-.08]],
+    [[-.22,.14,.0],[-.33,.18,-.04],[-.35,.10,-.09]]
+  ];
+  for(let i=0;i<locks.length;i++){
+    tube(rig.hair,i%2?M.hairHi:M.hair,locks[i],.046,18);
+    spike(rig.hair,M.hair,locks[i][1],locks[i][2],.055);
   }
-  // Iconic straw hat, woven rings, band, seam and stitched brim.
-  rig.hat=new THREE.Group(); rig.head.add(rig.hat);
-  put(rig.hat,new THREE.CylinderGeometry(.62,.66,.06,64,3),M.straw,[0,.385,0],[1,1,.92]);
-  put(rig.hat,new THREE.CylinderGeometry(.29,.34,.27,40,3),M.strawLight,[0,.53,-.005]);
-  torus(rig.hat,M.hatBand,[0,.49,0],.315,.035,[Math.PI/2,0,0],48);
-  torus(rig.hat,M.strawDark,[0,.416,0],.51,.008,[Math.PI/2,0,0],64);
-  torus(rig.hat,M.strawLight,[0,.557,0],.31,.012,[Math.PI/2,0,0],40);
-  for(let y=0;y<5;y++){
-    const radius=.285-y*.005;
-    torus(rig.hat,y%2?M.strawDark:M.strawLight,[0,.43+y*.045,0],radius,.006,[Math.PI/2,0,0],40);
-  }
-  for(let i=0;i<48;i++){
-    const a=i/48*Math.PI*2;
-    sphere(rig.hat,M.strawDark,[Math.cos(a)*.57,.416,Math.sin(a)*.525],[.009,.008,.009],7);
-  }
-  addStitches(rig.hat,M.stitch,.62,.57,.414,48);
 
-  // Gear 2: heat pressure, steam trails and hot highlights around a fast body.
-  rig.gear2=new THREE.Group(); root.add(rig.gear2);
-  const heatRing=torus(rig.gear2,M.flame,[0,.12,0],.72,.035,[Math.PI/2,0,0],64);
-  heatRing.name="Gear2_HeatRing";
-  for(let side of [-1,1]){
-    tube(rig.gear2,M.flame,[[side*.42,1.15,.02],[side*.68,1.45,.04],[side*.55,1.8,0],[side*.76,2.08,-.03]],.028,36);
-    tube(rig.gear2,M.flameGold,[[side*.46,.65,.04],[side*.65,.9,.02],[side*.56,1.17,0]],.018,24);
+  // Straw hat built from a broad curved brim, crown, red band and stitched edge.
+  rig.hat=new THREE.Group(); rig.head.add(rig.hat);
+  add(rig.hat,new THREE.CylinderGeometry(.49,.52,.045,64,3),M.straw,[0,.33,0],[1,1,.91]);
+  add(rig.hat,new THREE.CylinderGeometry(.255,.29,.22,48,3),M.strawHi,[0,.455,-.005]);
+  torus(rig.hat,M.band,[0,.425,0],.27,.027,[Math.PI/2,0,0],48);
+  torus(rig.hat,M.strawShade,[0,.355,0],.47,.008,[Math.PI/2,0,0],64);
+  for(let i=0;i<40;i++){
+    const a=i/40*Math.PI*2;
+    sphere(rig.hat,M.strawShade,[Math.cos(a)*.485,.355,Math.sin(a)*.44],[.007,.006,.007],7);
   }
+
+  // Gear 2: heat haze and narrow smoke trails are kept behind the silhouette.
+  rig.gear2=new THREE.Group(); root.add(rig.gear2);
+  for(const side of [-1,1]){
+    tube(rig.gear2,M.flame,[[side*.48,.82,-.12],[side*.62,1.15,-.22],[side*.50,1.48,-.24],[side*.68,1.78,-.2]],.018,32);
+    tube(rig.gear2,M.flameHi,[[side*.45,1.0,-.15],[side*.52,1.22,-.20],[side*.46,1.4,-.22]],.011,24);
+  }
+  torus(rig.gear2,M.flameHi,[0,.12,0],.53,.018,[Math.PI/2,0,0],56);
+
+  // Gear 3: separate oversized right fist and forearm, with defined knuckles.
+  rig.gear3=new THREE.Group(); root.add(rig.gear3);
+  rig.giantArm=new THREE.Group(); rig.giantArm.position.set(.64,1.90,.08); rig.gear3.add(rig.giantArm);
+  capsule(rig.giantArm,M.skin,[0,-.22,.02],.26,.35);
+  sphere(rig.giantArm,M.skinHi,[.03,-.36,.10],[.24,.26,.19],28);
+  capsule(rig.giantArm,M.skin,[.04,-.67,.12],.34,.32);
+  sphere(rig.giantArm,M.skin,[.05,-.91,.22],[.42,.34,.34],36);
+  // Four large knuckles form a clenched fist.
+  for(let i=0;i<4;i++){
+    const x=-.24+i*.16;
+    sphere(rig.giantArm,M.skinHi,[x,-.82,.505],[.105,.12,.075],24);
+    tube(rig.giantArm,M.skinShade,[[x-.035,-.88,.56],[x,-.91,.57],[x+.035,-.88,.56]],.008,12);
+  }
+  sphere(rig.giantArm,M.skin,[.42,-.94,.23],[.16,.18,.15],24);
+  taper(rig.giantArm,M.skin,[.43,-.94,.25],[.53,-1.10,.40],.09,.065,16);
+  torus(rig.giantArm,M.skinShade,[0,-.53,.04],.28,.014,[Math.PI/2,0,0],36);
+  rig.gear3Steam=new THREE.Group(); rig.gear3.add(rig.gear3Steam);
   for(let i=0;i<7;i++){
     const a=i/7*Math.PI*2;
-    tube(rig.gear2,M.whiteGlow,[[Math.cos(a)*.55,.25,Math.sin(a)*.5],[Math.cos(a+1)*.68,.65,Math.sin(a+1)*.52],[Math.cos(a+1.8)*.56,1.05,Math.sin(a+1.8)*.48]],.018,28);
+    sphere(rig.gear3Steam,M.cloud,[Math.cos(a)*.62,1.72+Math.sin(a)*.18,Math.sin(a)*.28],[.12,.10,.12],20);
   }
+  tube(rig.gear3Steam,M.cloud,[[-.45,1.92,-.22],[-.18,2.12,-.26],[.20,2.05,-.25],[.48,1.82,-.2]],.035,42);
 
-  // Gear 3: giant balloon arm and fist with distinct knuckles, creases and steam.
-  rig.gear3=new THREE.Group(); root.add(rig.gear3);
-  rig.giantArm=new THREE.Group(); rig.giantArm.position.set(.6,1.82,.02); rig.gear3.add(rig.giantArm);
-  sphere(rig.giantArm,M.skin,[0,0,0],[.35,.34,.32],32);
-  sphere(rig.giantArm,M.skinLight,[.06,-.27,.045],[.33,.42,.31],34);
-  sphere(rig.giantArm,M.skin,[.08,-.57,.12],[.48,.43,.4],36);
-  // Massive fist: palm, four curled knuckles and thumb.
-  sphere(rig.giantArm,M.skin,[.08,-.86,.22],[.55,.42,.45],36);
-  for(let i=0;i<4;i++){
-    const x=-.30+i*.245;
-    sphere(rig.giantArm,M.skinLight,[x,-.72,.585],[.14,.16,.1],24);
-    tube(rig.giantArm,M.skinShade,[[x-.055,-.82,.65],[x,-.87,.68],[x+.055,-.84,.65]],.009,12);
-  }
-  sphere(rig.giantArm,M.skin,[.52,-.91,.28],[.2,.22,.18],24);
-  segment(rig.giantArm,M.skin,[.53,-.91,.3],[.63,-1.08,.48],.105,.075,16);
-  torus(rig.giantArm,M.skinShade,[0,-.48,.02],.34,.018,[Math.PI/2,0,0],40);
-  // Knuckle creases and vapor puffs for scale.
-  for(let i=0;i<3;i++) tube(rig.giantArm,M.skinShade,[[-.2+i*.18,-.96,.58],[-.12+i*.18,-1.0,.65],[-.04+i*.18,-.96,.61]],.012,16);
-  rig.gear3Steam=new THREE.Group(); rig.gear3.add(rig.gear3Steam);
-  for(let i=0;i<8;i++){
-    const a=i/8*Math.PI*2, x=Math.cos(a)*.58, z=Math.sin(a)*.36;
-    puff(rig.gear3Steam,M.cloud,[x,1.7+Math.sin(a*2)*.2,z],[.16,.12,.15]);
-  }
-  tube(rig.gear3Steam,M.cloud,[[-.05,2.0,-.25],[.35,2.22,-.32],[.72,2.08,-.2],[.9,1.8,-.12]],.055,42);
-
-  // Gear 4: Boundman silhouette — expanded torso, coated arms, patterning and smoke.
+  // Gear 4: Boundman. Expanded chest silhouette, Haki-coated independent arms,
+  // patterned flame markings, purple sash and inflated calves.
   rig.gear4=new THREE.Group(); root.add(rig.gear4);
-  sphere(rig.gear4,M.red,[0,1.47,-.02],[.67,.79,.47],44);
-  sphere(rig.gear4,M.redLight,[0,1.73,.23],[.48,.42,.22],34);
+  lathe(rig.gear4,M.red,[[.25,.70],[.42,.82],[.55,1.10],[.62,1.42],[.56,1.74],[.43,2.02],[.24,2.12],[0,2.12]],[1,1,.78]);
+  sphere(rig.gear4,M.redHi,[0,1.72,.20],[.43,.32,.22],36);
   for(const side of [-1,1]){
-    sphere(rig.gear4,M.red,[side*.43,1.86,0],[.31,.34,.31],30);
-    sphere(rig.gear4,M.redDark,[side*.24,1.23,.34],[.20,.21,.09],24);
-    // Dark, curved Haki flame markings.
-    tube(rig.gear4,M.blackHaki,[[side*.06,1.88,.43],[side*.19,1.72,.46],[side*.24,1.55,.44],[side*.12,1.4,.44]],.04,26);
-    tube(rig.gear4,M.hakiHi,[[side*.3,1.9,.31],[side*.43,1.72,.34],[side*.38,1.57,.36]],.018,20);
-    sphere(rig.gear4,M.purple,[side*.38,.9,-.01],[.25,.18,.27],24);
+    sphere(rig.gear4,M.red,[side*.42,1.89,0],[.25,.28,.25],28);
+    tube(rig.gear4,M.haki,[[side*.04,1.96,.39],[side*.17,1.79,.44],[side*.22,1.60,.43],[side*.10,1.42,.40]],.034,28);
+    tube(rig.gear4,M.hakiHi,[[side*.28,1.98,.30],[side*.40,1.80,.32],[side*.34,1.64,.34]],.016,22);
+    sphere(rig.gear4,M.purple,[side*.23,.95,.0],[.22,.25,.22],24);
   }
-  // Inflated dark forearms as independent animated pivots.
   rig.gear4Arms=[];
   for(const side of [-1,1]){
-    const arm=new THREE.Group(); arm.position.set(side*.68,1.77,.02); rig.gear4.add(arm); rig.gear4Arms.push(arm);
-    sphere(arm,M.blackHaki,[0,-.13,0],[.265,.28,.25],32);
-    sphere(arm,M.hakiHi,[side*.035,-.17,.16],[.17,.19,.1],24);
-    sphere(arm,M.blackHaki,[0,-.48,.03],[.23,.34,.23],32);
-    torus(arm,M.purpleHi,[0,-.56,.02],.22,.035,[Math.PI/2,0,0],32);
-    sphere(arm,M.blackHaki,[0,-.78,.09],[.28,.24,.27],32);
-    for(let j=0;j<4;j++) sphere(arm,M.hakiHi,[(j-1.5)*.095,-.75,.31],[.055,.075,.035],14);
+    const arm=new THREE.Group(); arm.position.set(side*.68,1.85,.03); rig.gear4.add(arm); rig.gear4Arms.push(arm);
+    capsule(arm,M.haki,[0,-.20,0],.215,.28);
+    sphere(arm,M.hakiHi,[side*.035,-.23,.13],[.14,.18,.08],22);
+    capsule(arm,M.haki,[0,-.55,.025],.19,.34);
+    torus(arm,M.purpleHi,[0,-.68,.04],.18,.027,[Math.PI/2,0,0],32);
+    sphere(arm,M.haki,[0,-.84,.07],[.22,.20,.22],28);
+    for(let j=0;j<4;j++)sphere(arm,M.hakiHi,[(j-1.5)*.078,-.84,.26],[.043,.06,.026],14);
   }
-  // Inflated thighs, purple shorts and belt.
+  // Short legs receive the dark Haki cuffs, but remain separate from normal legs.
   for(const side of [-1,1]){
-    sphere(rig.gear4,M.red,[side*.23,.78,0],[.245,.34,.25],28);
-    sphere(rig.gear4,M.blackHaki,[side*.23,.57,.02],[.19,.16,.19],22);
+    capsule(rig.gear4,M.red,[side*.22,.71,0],.20,.24);
+    capsule(rig.gear4,M.haki,[side*.22,.49,.02],.15,.16);
   }
-  torus(rig.gear4,M.purple,[0,.99,0],.46,.085,[Math.PI/2,0,0],56);
+  torus(rig.gear4,M.purple,[0,1.03,0],.46,.065,[Math.PI/2,0,0],56);
   for(let i=0;i<12;i++){
     const a=i/12*Math.PI*2;
-    sphere(rig.gear4,M.purpleHi,[Math.cos(a)*.48,1.0,Math.sin(a)*.42],[.025,.035,.025],10);
+    sphere(rig.gear4,M.purpleHi,[Math.cos(a)*.46,1.03,Math.sin(a)*.37],[.02,.026,.02],10);
   }
-  // Boundman steam coils.
   rig.gear4Smoke=new THREE.Group(); rig.gear4.add(rig.gear4Smoke);
-  tube(rig.gear4Smoke,M.cloud,[[-.65,2.1,0],[-.88,2.32,-.05],[-.4,2.48,-.12],[0,2.42,-.18],[.45,2.5,-.08],[.82,2.28,.0]],.06,80);
-  for(let i=0;i<10;i++){
-    const a=i/10*Math.PI*2;
-    puff(rig.gear4Smoke,i%2?M.cloud:M.cloudShade,[Math.cos(a)*.82,1.95+Math.sin(a)*.25,Math.sin(a)*.34],[.14,.13,.14]);
+  tube(rig.gear4Smoke,M.cloud,[[-.68,2.06,0],[-.88,2.24,-.08],[-.43,2.40,-.14],[0,2.34,-.17],[.43,2.40,-.1],[.82,2.19,0]],.043,72);
+  for(let i=0;i<8;i++){
+    const a=i/8*Math.PI*2;
+    sphere(rig.gear4Smoke,i%2?M.cloud:M.cloudShade,[Math.cos(a)*.73,1.92+Math.sin(a)*.20,Math.sin(a)*.27],[.10,.095,.10],18);
   }
 
-  // Gear 5: Nika form — white flowing hair, cloud scarf, white coat and sky-lightning.
+  // Gear 5: Nika. White open coat, white shorts, floating spiral cloud scarf,
+  // swept white hair and small lightning ribbons. No giant doughnut at the neck.
   rig.gear5=new THREE.Group(); root.add(rig.gear5);
-  const nikaCloth=new THREE.Group(); rig.gear5.add(nikaCloth);
-  sphere(nikaCloth,M.white,[0,1.42,0],[.46,.62,.33],36);
+  const nikaCoat=new THREE.Group(); rig.gear5.add(nikaCoat);
+  lathe(nikaCoat,M.white,[[.20,-.48],[.30,-.40],[.34,-.17],[.38,.12],[.40,.40],[.32,.63],[.18,.67],[0,.67]],[1,1,.80]);
   for(const side of [-1,1]){
-    sphere(nikaCloth,M.whiteHi,[side*.19,1.36,.23],[.2,.48,.13],30);
-    tube(nikaCloth,M.cloud,[[side*.29,1.72,.25],[side*.37,1.46,.23],[side*.31,1.16,.21]],.018,28);
-    sphere(nikaCloth,M.white,[side*.19,.72,.02],[.22,.28,.23],26);
+    // Long open lapel panels.
+    tube(nikaCoat,M.whiteHi,[[side*.12,.56,.26],[side*.23,.28,.31],[side*.20,-.06,.29],[side*.13,-.42,.23]],.045,38);
+    tube(nikaCoat,M.whiteShade,[[side*.31,.48,.18],[side*.34,.12,.21],[side*.29,-.24,.18]],.012,28);
+    for(let i=0;i<5;i++)sphere(nikaCoat,M.gold,[side*.04,-.20+i*.12,.28],[.012,.012,.009],8);
   }
-  torus(nikaCloth,M.red,[0,.95,0],.39,.055,[Math.PI/2,0,0],56);
-  // Cloud mantle and asymmetric floating puffs around the shoulders.
-  rig.cloudRing=torus(rig.gear5,M.whiteGlow,[0,1.8,0],.72,.12,[Math.PI/2,0,0],72);
-  rig.cloudRing.name="Nika_CloudRing";
+  sphere(nikaCoat,M.white,[0,-.43,.02],[.29,.075,.23],26);
+  for(const side of [-1,1]){
+    sphere(nikaCoat,M.white,[side*.16,-.53,.01],[.16,.19,.19],24);
+  }
+  // Short white cuffs and visible wrist seams.
   rig.cloudMantle=new THREE.Group(); rig.gear5.add(rig.cloudMantle);
-  for(let i=0;i<18;i++){
-    const a=i/18*Math.PI*2, radius=.57+(.07*Math.sin(i*2.4));
-    puff(rig.cloudMantle,i%4===0?M.whiteHi:M.cloud,[Math.cos(a)*radius,1.75+Math.sin(a*2)*.17,Math.sin(a)*.34],[.17+(.025*(i%3)),.15,.15]);
+  tube(rig.cloudMantle,M.cloud,[[.38,2.22,.02],[.57,2.38,.0],[.77,2.28,-.06],[.83,2.06,-.13],[.68,1.95,-.18],[.42,2.00,-.15]],.055,64);
+  tube(rig.cloudMantle,M.cloudShade,[[-.38,2.20,.02],[-.60,2.35,-.02],[-.79,2.20,-.1],[-.75,2.00,-.16],[-.48,1.96,-.18]],.035,48);
+  // Separate fluffy accents positioned asymmetrically along the cloud trail.
+  for(const [x,y,z,s] of [[-.50,2.18,.03,.13],[-.70,2.28,-.04,.12],[.47,2.24,.06,.14],[.72,2.18,-.03,.11],[.57,1.99,.02,.10],[-.52,2.00,.01,.10]]){
+    sphere(rig.cloudMantle,M.cloud,[x,y,z],[s*1.2,s,s],20);
   }
-  tube(rig.cloudMantle,M.cloud,[[.55,1.92,.12],[.83,2.12,.04],[.54,2.29,-.1],[.2,2.18,-.18],[-.2,2.3,-.12],[-.58,2.12,0]],.045,72);
-  // White hair silhouette built from layered locks and rounded tufts.
+  // Keep a small orbit ring for the existing animation controller; it is not
+  // the dominant scarf silhouette.
+  rig.cloudRing=torus(rig.gear5,M.whiteHi,[0,2.14,-.04],.48,.035,[Math.PI/2,0,0],64);
   rig.whiteHair=new THREE.Group(); rig.head.add(rig.whiteHair);
-  sphere(rig.whiteHair,M.white,[0,.22,-.015],[.34,.23,.29],36);
-  for(let i=0;i<18;i++){
-    const a=i/18*Math.PI*2, x=Math.cos(a)*.25, z=Math.sin(a)*.22;
-    const tip=[x+Math.cos(a)*(.13+.035*Math.sin(i)),.18+.1*Math.sin(i*1.7),z+Math.sin(a)*.14];
-    spike(rig.whiteHair,i%3===0?M.whiteHi:M.white,[x,.25,z],tip,.09);
-    puff(rig.whiteHair,M.cloud,[x,.22,z],[.085,.085,.085]);
+  sphere(rig.whiteHair,M.white,[0,.19,-.02],[.275,.18,.24],38);
+  const nikaLocks=[
+    [[-.22,.22,.06],[-.30,.34,.02],[-.40,.31,-.05]],
+    [[-.15,.30,.10],[-.19,.45,.05],[-.29,.51,-.02]],
+    [[-.06,.32,.11],[-.04,.48,.08],[-.15,.55,.02]],
+    [[.05,.32,.11],[.13,.46,.07],[.12,.54,.0]],
+    [[.16,.28,.09],[.25,.40,.02],[.35,.40,-.05]],
+    [[.22,.14,.02],[.33,.20,-.04],[.39,.14,-.10]],
+    [[-.22,.12,0],[-.34,.17,-.05],[-.40,.08,-.10]]
+  ];
+  for(let i=0;i<nikaLocks.length;i++){
+    tube(rig.whiteHair,i%2?M.whiteHi:M.white,nikaLocks[i],.052,22);
+    spike(rig.whiteHair,M.white,nikaLocks[i][1],nikaLocks[i][2],.06);
   }
-  for(let i=0;i<6;i++){
-    const side=i%2?1:-1;
-    tube(rig.whiteHair,M.whiteHi,[[side*.16,.29,.08],[side*.28,.12,.09],[side*.34,-.02,.02]],.035,20);
-  }
-  // Nika's playful smile overlay and bright eye glints.
   rig.nikaSmile=new THREE.Group(); rig.head.add(rig.nikaSmile);
-  sphere(rig.nikaSmile,M.mouth,[0,-.18,.264],[.12,.065,.035],24);
-  sphere(rig.nikaSmile,M.teeth,[0,-.155,.291],[.095,.022,.012],20);
-  sphere(rig.nikaSmile,M.tongue,[0,-.205,.29],[.05,.018,.01],16);
+  // Nika's wide smile overlays the standard mouth without changing the skull size.
+  tube(rig.nikaSmile,M.mouth,[[-.12,-.16,.21],[-.08,-.205,.225],[0,-.22,.228],[.08,-.205,.225],[.12,-.16,.21]],.016,24);
+  box(rig.nikaSmile,M.teeth,[0,-.183,.232],[.16,.032,.012]);
   for(const side of [-1,1]){
-    sphere(rig.nikaSmile,M.whiteHi,[side*.12,.04,.29],[.082,.095,.02],20);
-    sphere(rig.nikaSmile,M.iris,[side*.12,.035,.31],[.04,.05,.015],18);
-    sphere(rig.nikaSmile,M.pupil,[side*.12,.032,.322],[.02,.03,.009],14);
+    sphere(rig.nikaSmile,M.eye,[side*.102,.035,.221],[.062,.070,.023],22);
+    sphere(rig.nikaSmile,M.iris,[side*.102,.024,.243],[.026,.042,.014],18);
+    sphere(rig.nikaSmile,M.pupil,[side*.102,.022,.254],[.014,.029,.009],14);
   }
   rig.nikaLightning=new THREE.Group(); rig.gear5.add(rig.nikaLightning);
-  for(let i=0;i<5;i++){
-    const a=i/5*Math.PI*2, x=Math.cos(a), z=Math.sin(a);
-    tube(rig.nikaLightning,M.lightning,[[x*.78,1.2,z*.37],[x*.98,1.42,z*.42],[x*.8,1.58,z*.4],[x*1.08,1.82,z*.38]],.022,22);
+  for(let i=0;i<4;i++){
+    const a=i/4*Math.PI*2,x=Math.cos(a),z=Math.sin(a);
+    tube(rig.nikaLightning,M.lightning,[[x*.58,1.40,z*.32],[x*.78,1.56,z*.36],[x*.62,1.72,z*.35],[x*.88,1.86,z*.34]],.014,20);
   }
 
   rig.hairSpikes=[];
+  rig.gear2.visible=true;
+  rig.gear3.visible=false;
+  rig.gear4.visible=false;
+  rig.gear5.visible=false;
+  rig.gear3Steam.visible=false;
+  rig.gear4Smoke.visible=false;
+  rig.cloudMantle.visible=false;
+  rig.cloudRing.visible=false;
   rig.whiteHair.visible=false;
-  rig.gear2.visible=true; rig.gear3.visible=false; rig.gear4.visible=false; rig.gear5.visible=false;
-  rig.cloudRing.visible=false; rig.gear3Steam.visible=false; rig.gear4Smoke.visible=false; rig.cloudMantle.visible=false;
   rig.nikaSmile.visible=false;
-  rig.hat.visible=true;
-  rig.baseMeshes={};
-  rig.modelQuality="grand-arena-v2";
-  root.userData={rig,baseScale:1,gear:2,haki:false,modelQuality:"grand-arena-v2"};
+  rig.baseScale=1;
+  rig.modelQuality="grand-arena-v3";
+  root.userData={rig,baseScale:1,gear:2,haki:false,modelQuality:"grand-arena-v3"};
   return root;
 }
