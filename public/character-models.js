@@ -83,7 +83,7 @@ export function createPirate() {
   }
 
   // Shorts sit at the pelvis with shaped legs and a real waistband.
-  rig.shorts=new THREE.Group(); root.add(rig.shorts);
+  rig.shorts=new THREE.Group(); rig.shorts.position.y=1.02; root.add(rig.shorts);
   lathe(rig.shorts,M.blue,[[.22,.0],[.31,.04],[.34,.16],[.31,.31],[.29,.38],[.0,.38]],[1,1,.82]);
   for(const side of [-1,1]){
     const legShort=sphere(rig.shorts,M.blue,[side*.17,-.12,.005],[.18,.25,.255],32);
@@ -164,7 +164,14 @@ export function createPirate() {
     torus(arm,M.skinShade,[0,-.74,.015],.075,.01,[Math.PI/2,0,0],20);
     const hand=makeHand(arm,side,1); hand.position.set(0,-.79,.04);
     rig.armParts.push(bicep,fore); rig.fists.push(hand); rig.shoulders.push(shoulder);
-    arm.userData={bicep,fore,hand};
+    const nikaSleeve=new THREE.Group(); arm.add(nikaSleeve);
+    capsule(nikaSleeve,M.white,[0,-.235,0],.112,.26);
+    sphere(nikaSleeve,M.whiteHi,[0,-.24,.07],[.075,.15,.04],18);
+    capsule(nikaSleeve,M.white,[0,-.59,.015],.094,.25);
+    torus(nikaSleeve,M.whiteShade,[0,-.74,.015],.078,.012,[Math.PI/2,0,0],22);
+    nikaSleeve.visible=false;
+    rig.nikaSleeves=rig.nikaSleeves||[];rig.nikaSleeves.push(nikaSleeve);
+    arm.userData={bicep,fore,hand,nikaSleeve};
   }
 
   // Head shape and face: smaller head, defined jaw, large expressive anime eyes.
@@ -291,7 +298,7 @@ export function createPirate() {
   // Gear 5: Nika. White open coat, white shorts, floating spiral cloud scarf,
   // swept white hair and small lightning ribbons. No giant doughnut at the neck.
   rig.gear5=new THREE.Group(); root.add(rig.gear5);
-  const nikaCoat=new THREE.Group(); rig.gear5.add(nikaCoat);
+  const nikaCoat=new THREE.Group(); nikaCoat.position.y=1.92; rig.gear5.add(nikaCoat);
   lathe(nikaCoat,M.white,[[.20,-.48],[.30,-.40],[.34,-.17],[.38,.12],[.40,.40],[.32,.63],[.18,.67],[0,.67]],[1,1,.80]);
   for(const side of [-1,1]){
     // Long open lapel panels.
@@ -329,6 +336,13 @@ export function createPirate() {
     tube(rig.whiteHair,i%2?M.whiteHi:M.white,nikaLocks[i],.052,22);
     spike(rig.whiteHair,M.white,nikaLocks[i][1],nikaLocks[i][2],.06);
   }
+  rig.nikaLegs=new THREE.Group(); rig.gear5.add(rig.nikaLegs);
+  for(const side of [-1,1]){
+    const trouser=new THREE.Group(); trouser.position.set(side*.20,1.10,0); rig.nikaLegs.add(trouser);
+    capsule(trouser,M.white,[0,-.13,0],.135,.21);
+    sphere(trouser,M.whiteHi,[side*-.015,-.12,.07],[.08,.14,.055],18);
+    torus(trouser,M.whiteShade,[0,-.28,0],.112,.014,[Math.PI/2,0,0],24);
+  }
   rig.nikaSmile=new THREE.Group(); rig.head.add(rig.nikaSmile);
   // Nika's wide smile overlays the standard mouth without changing the skull size.
   tube(rig.nikaSmile,M.mouth,[[-.12,-.16,.21],[-.08,-.205,.225],[0,-.22,.228],[.08,-.205,.225],[.12,-.16,.21]],.016,24);
@@ -353,10 +367,11 @@ export function createPirate() {
   rig.gear4Smoke.visible=false;
   rig.cloudMantle.visible=false;
   rig.cloudRing.visible=false;
+  rig.nikaLegs.visible=false;
   rig.whiteHair.visible=false;
   rig.nikaSmile.visible=false;
   rig.baseScale=1;
-  rig.modelQuality="grand-arena-v3.1";
+  rig.modelQuality="grand-arena-v3.2";
   rig.bodyShell.visible=true;
   root.userData={rig,baseScale:1,gear:2,haki:false,modelQuality:"grand-arena-v3"};
   return root;
