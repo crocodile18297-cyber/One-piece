@@ -28,7 +28,8 @@ function applyCharacterGear(character,n){
  r.nikaSmile.visible=n===5;
  r.vest.visible=n!==4&&n!==5;
  r.shorts.visible=n!==4&&n!==5;
- r.sash.visible=n!==4;
+ r.sash.visible=n===2||n===3;
+ r.legs.forEach(leg=>{leg.visible=n!==5;leg.scale.setScalar(n===4?1.08:1)});
  r.cloudRing.visible=n===5;
  r.gear3Steam.visible=n===3;
  r.gear4Smoke.visible=n===4;
