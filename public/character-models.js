@@ -1,4 +1,5 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+import {GLTFLoader} from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 
 /* Grand Arena Character Workshop v3
    Distinct, taller anime-game silhouettes for Gear 2/3/4/5.
@@ -398,4 +399,34 @@ export function createPirate() {
   rig.bodyShell.visible=true;
   root.userData={rig,baseScale:1,gear:2,haki:false,modelQuality:"grand-arena-v3"};
   return root;
+}
+
+export async function loadGear5Asset(url){
+  const response=await fetch(url,{cache:"no-cache"});
+  if(!response.ok)throw new Error("Gear 5 model download failed: "+response.status);
+  const compressed=await response.arrayBuffer();
+  if(typeof DecompressionStream==="undefined")throw new Error("GZIP decompression is unavailable in this browser.");
+  const stream=new Blob([compressed]).stream().pipeThrough(new DecompressionStream("gzip"));
+  const buffer=await new Response(stream).arrayBuffer();
+  const loader=new GLTFLoader();
+  return await new Promise((resolve,reject)=>loader.parse(buffer,"/assets/",gltf=>resolve(gltf.scene),reject));
+}
+export function installGear5Asset(actor,template){
+  const rig=actor.userData.rig;
+  if(!rig)return null;
+  if(rig.externalGear5)actor.remove(rig.externalGear5);
+  const model=template.clone(true);
+  model.name="Gear5_External_Pro";
+  model.traverse(object=>{
+    if(!object.isMesh)return;
+    object.castShadow=true;
+    object.receiveShadow=true;
+    object.frustumCulled=true;
+    if(Array.isArray(object.material))object.material=object.material.map(mat=>mat.clone());
+    else object.material=object.material.clone();
+  });
+  actor.add(model);
+  rig.externalGear5=model;
+  model.visible=actor.userData.gear===5;
+  return model;
 }
