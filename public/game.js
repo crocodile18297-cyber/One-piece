@@ -1,5 +1,5 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-import {createPirate} from "./character-models.js";
+import {createPirate,loadGear5Asset,installGear5Asset,animateGear5Asset} from "./character-models.js";
 const socket=io(),scene=new THREE.Scene();scene.background=new THREE.Color(0x91c9e9);scene.fog=new THREE.Fog(0x91c9e9,38,100);
 const camera=new THREE.PerspectiveCamera(58,innerWidth/innerHeight,.1,160);camera.position.set(0,6.65,-10.2);camera.lookAt(0,1.35,0);
 const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;document.getElementById("game").appendChild(renderer.domElement);
@@ -13,34 +13,19 @@ function mesh(g,m,parent,x,y,z,sx=1,sy=1,sz=1){const o=new THREE.Mesh(g,m);o.pos
 function pirate(){return createPirate();}
 function applyCharacterGear(character,n){
  const r=character.userData.rig;if(!r)return;
- n=THREE.MathUtils.clamp(Math.round(n),2,5);
- character.userData.gear=n;
- r.gear2.visible=n===2;
- r.gear3.visible=n===3;
- r.gear4.visible=n===4;
- r.gear5.visible=n===5;
- r.bodyShell.visible=n!==4&&n!==5;
- r.nikaLegs.visible=n===5;
- r.nikaSleeves.forEach(sleeve=>sleeve.visible=n===5);
- r.hat.visible=n!==4&&n!==5;
- r.hair.visible=n!==5;
- r.whiteHair.visible=n===5;
- r.nikaSmile.visible=n===5;
- r.vest.visible=n!==4&&n!==5;
- r.shorts.visible=n!==4&&n!==5;
- r.sash.visible=n===2||n===3;
+ n=THREE.MathUtils.clamp(Math.round(n),2,5);character.userData.gear=n;
+ const external=!!r.externalGear5;
+ r.gear2.visible=n===2;r.gear3.visible=n===3;r.gear4.visible=n===4;
+ r.gear5.visible=n===5&&!external;if(r.externalGear5)r.externalGear5.visible=n===5;
+ r.bodyShell.visible=n!==4&&n!==5;r.head.visible=!(external&&n===5);
+ r.nikaLegs.visible=n===5&&!external;r.nikaSleeves.forEach(s=>s.visible=n===5&&!external);
+ r.hat.visible=n!==4&&n!==5;r.hair.visible=n!==5;r.whiteHair.visible=n===5&&!external;r.nikaSmile.visible=n===5&&!external;
+ r.vest.visible=n!==4&&n!==5;r.shorts.visible=n!==4&&n!==5;r.sash.visible=n===2||n===3;
  r.legs.forEach(leg=>{leg.visible=n!==5;leg.scale.setScalar(n===4?1.08:1)});
- r.cloudRing.visible=n===5;
- r.gear3Steam.visible=n===3;
- r.gear4Smoke.visible=n===4;
- r.cloudMantle.visible=n===5;
- r.arms.forEach((arm,i)=>{
-  arm.visible=n!==4&&!(n===3&&i===1);
- });
- r.gear4Arms.forEach(arm=>arm.visible=n===4);
- r.giantArm.visible=n===3;
+ r.cloudRing.visible=n===5&&!external;r.gear3Steam.visible=n===3;r.gear4Smoke.visible=n===4;r.cloudMantle.visible=n===5&&!external;
+ r.arms.forEach((arm,i)=>{arm.visible=external&&n===5?false:n!==4&&!(n===3&&i===1)});
+ r.gear4Arms.forEach(arm=>arm.visible=n===4);r.giantArm.visible=n===3;
  character.scale.setScalar(n===3?1.06:n===4?1.08:1);
- r.legs.forEach(leg=>leg.scale.setScalar(n===4?1.08:1));
 }
 function setCharacterHaki(character,on){
  const r=character.userData.rig;if(!r)return;
@@ -63,6 +48,14 @@ function setCharacterHaki(character,on){
  r.arms.forEach(apply);
 }
 const local=pirate();scene.add(local);applyCharacterGear(local,2);setCharacterHaki(local,false);const others=new Map(),effects=[];
+let gear5Template=null;
+const gear5ChunkUrls=Array.from({length:11},(_,i)=>"/assets/gear5/part-"+String(i).padStart(2,"0")+".b64");
+loadGear5Asset(gear5ChunkUrls).then(template=>{
+ gear5Template=template;
+ installGear5Asset(local,template);applyCharacterGear(local,gear);
+ for(const player of others.values()){installGear5Asset(player,template);applyCharacterGear(player,player.userData.gear||2)}
+ toast("GEAR 5 MODEL LOADED");
+}).catch(error=>console.error("Gear 5 GLB unavailable; built-in fallback remains active:",error));
 const bossRoot=new THREE.Group();bossRoot.position.set(0,0,-15);scene.add(bossRoot);
 const bossMat=mat(0x26384d,.42,.45),bossGold=mat(0xd8a84e,.3,.55),bossCape=mat(0x8d2935,.8),bossSkin=mat(0xd99b78);
 mesh(new THREE.CylinderGeometry(.72,.95,1.65,12),bossMat,bossRoot,0,1.25,0);
@@ -105,7 +98,7 @@ function transformBurst(n){
 function setGear(n){gear=THREE.MathUtils.clamp(Math.round(n),2,5);local.userData.gear=gear;applyCharacterGear(local,gear);setCharacterHaki(local,hakiOn);aura(local,gear);transformBurst(gear);document.querySelectorAll(".gear").forEach(b=>b.classList.toggle("active",+b.dataset.gear===gear));document.getElementById("gearLabel").textContent="GEAR "+gear+" · "+({2:"BASE / RED HAWK",3:"GIANT",4:"BOUND-MAN",5:"NIKA"}[gear]);socket.emit("move",{x:local.position.x,z:local.position.z,gear});toast("GEAR "+gear+" ACTIVATED")}
 document.querySelectorAll(".gear").forEach(b=>b.onclick=()=>setGear(+b.dataset.gear));
 function toast(s){const e=document.getElementById("toast");e.textContent=s;e.style.opacity=1;clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.opacity=0,1250)}
-function addOther(p){if(others.has(p.id))return;const m=pirate();m.position.set(p.x||0,0,p.z||0);m.rotation.y=Number(p.yaw)||0;m.userData.targetYaw=Number(p.yaw)||0;scene.add(m);others.set(p.id,m);updateOnline();if(p.gear){applyCharacterGear(m,p.gear);aura(m,p.gear)}}
+function addOther(p){if(others.has(p.id))return;const m=pirate();m.position.set(p.x||0,0,p.z||0);m.rotation.y=Number(p.yaw)||0;m.userData.targetYaw=Number(p.yaw)||0;scene.add(m);others.set(p.id,m);if(gear5Template)installGear5Asset(m,gear5Template);updateOnline();if(p.gear){applyCharacterGear(m,p.gear);aura(m,p.gear)}}
 function updateOnline(){document.getElementById("online").textContent=(others.size+1)+" пират(ов) онлайн"}
 socket.on("welcome",d=>{myId=d.id;d.players.filter(p=>p.id!==myId).forEach(addOther);updateOnline();toast("Добро пожаловать на Гранд-лайн")});
 socket.on("player-joined",p=>{addOther(p);toast("Новый пират присоединился")});
@@ -178,7 +171,7 @@ function animate(){
  rig.head.rotation.y=Math.sin(t*1.4)*.035;rig.head.rotation.x=air?-.12:0;
  // Gear-specific idle and transformation motion.
  if(gear===2){rig.gear2.rotation.y=Math.sin(t*1.6)*.045;rig.gear2.scale.setScalar(1+.018*Math.sin(t*5));rig.hat.rotation.z=Math.sin(t*2.2)*.006}
- if(gear===5){rig.cloudRing.rotation.z=t*.55;rig.cloudRing.scale.setScalar(1+.055*Math.sin(t*4));rig.gear5.rotation.y=Math.sin(t*1.7)*.025;rig.whiteHair.rotation.z=Math.sin(t*2.4)*.035;rig.cloudMantle.rotation.y=Math.sin(t*1.35)*.05;rig.cloudMantle.rotation.z=Math.sin(t*2.1)*.025;rig.nikaLightning.rotation.y=-t*.8}
+ if(gear===5){if(rig.externalGear5){animateGear5Asset(local,t,moving,local.userData.attackMotion,blocking);rig.externalGear5.rotation.y=Math.sin(t*1.2)*.012}else{rig.cloudRing.rotation.z=t*.55;rig.cloudRing.scale.setScalar(1+.055*Math.sin(t*4));rig.gear5.rotation.y=Math.sin(t*1.7)*.025;rig.whiteHair.rotation.z=Math.sin(t*2.4)*.035;rig.cloudMantle.rotation.y=Math.sin(t*1.35)*.05;rig.cloudMantle.rotation.z=Math.sin(t*2.1)*.025;rig.nikaLightning.rotation.y=-t*.8}}
  if(gear===3){rig.giantArm.rotation.z=-.15+Math.sin(t*2)*.035;rig.giantArm.rotation.x=Math.sin(t*1.6)*.045;rig.giantArm.scale.set(1,1+(pulse>0?.18*pulse:0),1);rig.gear3Steam.rotation.y=Math.sin(t*1.2)*.08}
  if(gear===4){rig.gear4.rotation.y=Math.sin(t*2)*.025;rig.gear4Smoke.rotation.y=Math.sin(t*1.6)*.08;rig.gear4Arms.forEach((a,i)=>{a.rotation.z=Math.sin(t*3+i*Math.PI)*.12;a.rotation.x=Math.cos(t*2.5+i*Math.PI)*.08})}
  }
@@ -196,7 +189,7 @@ function animate(){
   else if(ap>0){rr.arms[1].rotation.x=-1.6*ap;rr.arms[1].scale.y=1+.45*ap;rr.torso.rotation.y=Math.sin(aa*Math.PI)*.22}
   else {rr.arms[0].rotation.x=-otherStep*.65;rr.arms[1].rotation.x=otherStep*.65;rr.arms[1].scale.y=THREE.MathUtils.lerp(rr.arms[1].scale.y,1,.25)}
   if(m.userData.gear===2){rr.gear2.rotation.y=Math.sin(t*1.6)*.045;rr.gear2.scale.setScalar(1+.018*Math.sin(t*5));rr.hat.rotation.z=Math.sin(t*2.2)*.006}
-   if(m.userData.gear===5){rr.cloudRing.rotation.z=t*.5;rr.whiteHair.rotation.z=Math.sin(t*2.4)*.03;rr.cloudMantle.rotation.y=Math.sin(t*1.35)*.05;rr.cloudMantle.rotation.z=Math.sin(t*2.1)*.025;rr.nikaLightning.rotation.y=-t*.8}
+   if(m.userData.gear===5){if(rr.externalGear5){animateGear5Asset(m,t,otherMoving,m.userData.attackMotion,!!m.userData.blocking);rr.externalGear5.rotation.y=Math.sin(t*1.2)*.012}else{rr.cloudRing.rotation.z=t*.5;rr.whiteHair.rotation.z=Math.sin(t*2.4)*.03;rr.cloudMantle.rotation.y=Math.sin(t*1.35)*.05;rr.cloudMantle.rotation.z=Math.sin(t*2.1)*.025;rr.nikaLightning.rotation.y=-t*.8}}
    else if(m.userData.gear===3){rr.giantArm.rotation.z=-.15+Math.sin(t*2)*.03;rr.gear3Steam.rotation.y=Math.sin(t*1.2)*.08}
    else if(m.userData.gear===4){rr.gear4.rotation.y=Math.sin(t*2)*.02;rr.gear4Smoke.rotation.y=Math.sin(t*1.6)*.08;rr.gear4Arms.forEach((a,i)=>{a.rotation.z=Math.sin(t*3+i*Math.PI)*.1;a.rotation.x=Math.cos(t*2.5+i*Math.PI)*.06})}
   }
