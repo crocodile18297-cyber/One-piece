@@ -10,20 +10,14 @@ app.use(express.static(path.join(__dirname,"public")));
 const players=new Map(),cooldowns=new Map();
 app.get("/health",(req,res)=>res.json({ok:true,game:"One Piece Grand Arena",players:players.size}));
 io.on("connection",socket=>{
- const p={id:socket.id,name:"Pirate",x:0,z:0,gear:2,hp:100,maxHp:100,stamina:100,level:1};
+ const p={id:socket.id,name:"Pirate",x:0,z:0,gear:2,hp:100,maxHp:100,stamina:100,blocking:false,haki:false,dodgingUntil:0};
  players.set(socket.id,p);socket.emit("welcome",{id:socket.id,players:[...players.values()]});socket.broadcast.emit("player-joined",p);
  socket.on("move",d=>{const q=players.get(socket.id);if(!q||!d)return;q.x=Math.max(-43,Math.min(43,Number(d.x)||0));q.z=Math.max(-43,Math.min(43,Number(d.z)||0));if([2,3,4,5].includes(+d.gear))q.gear=+d.gear;socket.broadcast.emit("player-moved",q)});
- socket.on("attack",d=>{
-  const a=players.get(socket.id);if(!a)return;
-  const kind=["pistol","gatling","kong","redhawk","rifle"].includes(d?.kind)?d.kind:"pistol";
-  const now=Date.now(),key=socket.id+":"+kind,cd={pistol:360,gatling:125,kong:1300,redhawk:850,rifle:700}[kind];
-  if(now-(cooldowns.get(key)||0)<cd)return;cooldowns.set(key,now);
-  const range={pistol:5.5,gatling:4.4,kong:8,redhawk:6,rifle:10}[kind],damage={pistol:9,gatling:4,kong:27,redhawk:19,rifle:16}[kind]*(a.gear===4?1.2:a.gear===5?1.35:1);
-  const victims=[];
-  for(const target of players.values()){if(target.id===socket.id||target.hp<=0)continue;const dist=Math.hypot(target.x-a.x,target.z-a.z);if(dist<=range) {target.hp=Math.max(0,target.hp-damage);victims.push({id:target.id,hp:target.hp,damage});io.to(target.id).emit("got-hit",{hp:target.hp,damage,from:socket.id});}}
-  io.emit("player-attack",{id:socket.id,kind,x:a.x,z:a.z,gear:a.gear,victims});
- });
- socket.on("respawn",()=>{const q=players.get(socket.id);if(q){q.hp=q.maxHp;q.x=0;q.z=0;socket.emit("stats",q);io.emit("player-respawned",q)}});
+ socket.on("stance",d=>{const q=players.get(socket.id);if(!q)return;if(d?.action==="block")q.blocking=!!d.enabled;if(d?.action==="haki")q.haki=!!d.enabled&&q.stamina>=10;socket.emit("stats",q);socket.broadcast.emit("player-stance",{id:q.id,blocking:q.blocking,haki:q.haki})});
+ socket.on("dodge",d=>{const q=players.get(socket.id);if(!q||q.stamina<18||Date.now()<q.dodgingUntil)return;q.stamina-=18;q.blocking=false;q.dodgingUntil=Date.now()+420;const a=Number(d?.yaw)||0;q.x=Math.max(-43,Math.min(43,q.x+Math.sin(a)*4.2));q.z=Math.max(-43,Math.min(43,q.z+Math.cos(a)*4.2));socket.emit("dodged",{x:q.x,z:q.z,stamina:q.stamina});socket.broadcast.emit("player-dodged",{id:q.id,x:q.x,z:q.z})});
+ socket.on("attack",d=>{const a=players.get(socket.id);if(!a||a.hp<=0)return;const kind=["pistol","gatling","kong","redhawk","rifle"].includes(d?.kind)?d.kind:"pistol";const now=Date.now(),key=socket.id+":"+kind,cd={pistol:330,gatling:145,kong:1250,redhawk:850,rifle:700}[kind];if(now-(cooldowns.get(key)||0)<cd)return;cooldowns.set(key,now);const range={pistol:6.2,gatling:4.8,kong:8.5,redhawk:6.5,rifle:10.5}[kind];const damage={pistol:10,gatling:4,kong:29,redhawk:21,rifle:17}[kind]*(a.gear===4?1.2:a.gear===5?1.35:1)*(a.haki?1.35:1);const angle=Number(d?.yaw)||0,fx=Math.sin(angle),fz=Math.cos(angle),victims=[];for(const target of players.values()){if(target.id===socket.id||target.hp<=0||Date.now()<target.dodgingUntil)continue;const vx=target.x-a.x,vz=target.z-a.z,dist=Math.hypot(vx,vz);if(dist>range||dist<.01)continue;const dot=(vx/dist)*fx+(vz/dist)*fz;if(dot<(kind==="kong"?.05:.25))continue;let dealt=damage;if(target.blocking)dealt*=.22;if(target.haki)dealt*=.62;target.hp=Math.max(0,Math.round(target.hp-dealt));victims.push({id:target.id,hp:target.hp,damage:Math.round(dealt),blocked:target.blocking});io.to(target.id).emit("got-hit",{hp:target.hp,damage:Math.round(dealt),blocked:target.blocking,from:socket.id})}io.emit("player-attack",{id:socket.id,kind,x:a.x,z:a.z,gear:a.gear,haki:a.haki,yaw:angle,victims})});
+ socket.on("respawn",()=>{const q=players.get(socket.id);if(q){q.hp=q.maxHp;q.stamina=100;q.blocking=false;q.haki=false;q.dodgingUntil=0;q.x=0;q.z=0;socket.emit("stats",q);io.emit("player-respawned",q)}});
  socket.on("disconnect",()=>{players.delete(socket.id);for(const k of cooldowns.keys())if(k.startsWith(socket.id+":"))cooldowns.delete(k);io.emit("player-left",socket.id)});
 });
-server.listen(process.env.PORT||3000,"0.0.0.0",()=>console.log("Grand Arena online"));
+setInterval(()=>{for(const p of players.values()){if(p.haki){p.stamina=Math.max(0,p.stamina-2);if(!p.stamina)p.haki=false}else p.stamina=Math.min(100,p.stamina+.8);if(p.hp>0)io.to(p.id).emit("stamina",{stamina:Math.round(p.stamina),haki:p.haki})}},1000);
+server.listen(process.env.PORT||3000,"0.0.0.0",()=>console.log("Grand Arena combat server online"));
