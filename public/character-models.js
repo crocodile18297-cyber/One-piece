@@ -401,16 +401,29 @@ export function createPirate() {
   return root;
 }
 
-export async function loadGear5Asset(url){
-  const response=await fetch(url,{cache:"no-cache"});
-  if(!response.ok)throw new Error("Gear 5 model download failed: "+response.status);
-  const compressed=await response.arrayBuffer();
+export async function loadGear5Asset(urlOrParts){
+  let compressed;
+  if(Array.isArray(urlOrParts)){
+    const parts=await Promise.all(urlOrParts.map(async url=>{
+      const response=await fetch(url,{cache:"no-cache"});
+      if(!response.ok)throw new Error("Gear 5 asset chunk request failed: "+response.status);
+      return response.text();
+    }));
+    const binary=atob(parts.join(""));
+    compressed=new Uint8Array(binary.length);
+    for(let i=0;i<binary.length;i++)compressed[i]=binary.charCodeAt(i);
+  }else{
+    const response=await fetch(urlOrParts,{cache:"no-cache"});
+    if(!response.ok)throw new Error("Gear 5 model download failed: "+response.status);
+    compressed=new Uint8Array(await response.arrayBuffer());
+  }
   if(typeof DecompressionStream==="undefined")throw new Error("GZIP decompression is unavailable in this browser.");
   const stream=new Blob([compressed]).stream().pipeThrough(new DecompressionStream("gzip"));
   const buffer=await new Response(stream).arrayBuffer();
   const loader=new GLTFLoader();
   return await new Promise((resolve,reject)=>loader.parse(buffer,"/assets/",gltf=>resolve(gltf.scene),reject));
 }
+
 export function installGear5Asset(actor,template){
   const rig=actor.userData.rig;
   if(!rig)return null;
@@ -429,4 +442,32 @@ export function installGear5Asset(actor,template){
   rig.externalGear5=model;
   model.visible=actor.userData.gear===5;
   return model;
+}
+
+export function animateGear5Asset(actor,time,moving,attackMotion=null,blocking=false){
+  const root=actor.userData.rig?.externalGear5;
+  if(!root)return;
+  const node=name=>root.getObjectByName(name);
+  const L=node("Bone_Arm_L"),R=node("Bone_Arm_R");
+  const FL=node("Bone_Forearm_L"),FR=node("Bone_Forearm_R");
+  const TL=node("Bone_Thigh_L"),TR=node("Bone_Thigh_R");
+  const Spine=node("Bone_Spine"),Head=node("Bone_Head");
+  const step=moving?Math.sin(time*9):Math.sin(time*1.7)*.025;
+  let leftArm=moving?step*.30:0,rightArm=moving?-step*.30:0;
+  if(blocking){leftArm=-.45;rightArm=-.45}
+  if(attackMotion&&performance.now()-attackMotion.started<attackMotion.duration){
+    const age=Math.max(0,(performance.now()-attackMotion.started)/attackMotion.duration);
+    const pulse=Math.sin(age*Math.PI);
+    rightArm=-1.0*pulse;
+    if(attackMotion.kind==="gatling")rightArm=-Math.abs(Math.sin(age*Math.PI*8))*.9;
+    if(attackMotion.kind==="kong"||attackMotion.kind==="redhawk")rightArm=-1.35*pulse;
+  }
+  if(L)L.rotation.x=THREE.MathUtils.lerp(L.rotation.x,leftArm,.28);
+  if(R)R.rotation.x=THREE.MathUtils.lerp(R.rotation.x,rightArm,.32);
+  if(FL)FL.rotation.x=THREE.MathUtils.lerp(FL.rotation.x,blocking?-.75:0,.25);
+  if(FR)FR.rotation.x=THREE.MathUtils.lerp(FR.rotation.x,attackMotion?-.28:0,.25);
+  if(TL)TL.rotation.x=THREE.MathUtils.lerp(TL.rotation.x,moving?step*.34:0,.26);
+  if(TR)TR.rotation.x=THREE.MathUtils.lerp(TR.rotation.x,moving?-step*.34:0,.26);
+  if(Spine)Spine.rotation.y=THREE.MathUtils.lerp(Spine.rotation.y,moving?step*.035:Math.sin(time*1.2)*.012,.18);
+  if(Head)Head.rotation.y=THREE.MathUtils.lerp(Head.rotation.y,Math.sin(time*1.3)*.018,.12);
 }
