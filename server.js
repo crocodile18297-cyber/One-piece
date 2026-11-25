@@ -1,31 +1,44 @@
 import express from "express";
 import http from "http";
-import {Server} from "socket.io";
-import path from "path";
-import {fileURLToPath} from "url";
-const __dirname=path.dirname(fileURLToPath(import.meta.url));
-const app=express(),server=http.createServer(app);
-const io=new Server(server,{cors:{origin:"*"},pingInterval:25000,pingTimeout:20000});
-app.use(express.static(path.join(__dirname,"public")));
-const players=new Map(),cooldowns=new Map();
-const boss={hp:900,maxHp:900,x:0,z:-15,phase:"idle",nextAttack:Date.now()+6500};
-let bossTimer=null,bossResetTimer=null;
-app.get("/health",(req,res)=>res.json({ok:true,game:"One Piece Grand Arena",players:players.size,bossHp:boss.hp}));
-function sendBoss(){io.emit("boss-state",{hp:boss.hp,maxHp:boss.maxHp,phase:boss.phase,x:boss.x,z:boss.z})}
-function damageBoss(amount,owner){if(boss.hp<=0)return;boss.hp=Math.max(0,boss.hp-Math.max(1,Math.round(amount)));boss.lastHit=owner;sendBoss();if(boss.hp===0){io.emit("boss-defeated",{by:owner});const winner=players.get(owner);if(winner){winner.skillPoints+=1;io.to(owner).emit("progress",{skillPoints:winner.skillPoints,unlocked:winner.unlocked})}boss.phase="defeated";clearTimeout(bossResetTimer);bossResetTimer=setTimeout(()=>{boss.hp=boss.maxHp;boss.phase="idle";boss.nextAttack=Date.now()+6500;sendBoss()},18000)}}
-io.on("connection",socket=>{
- const slot=players.size,angle=slot*2.399963229728653,radius=slot===0?0:3+Math.floor((slot-1)/8)*2;const spawnX=Math.cos(angle)*radius,spawnZ=Math.sin(angle)*radius;const p={id:socket.id,name:"Pirate",x:spawnX,z:spawnZ,yaw:0,gear:2,hp:100,maxHp:100,stamina:100,blocking:false,haki:false,kingHaki:false,skillPoints:0,unlocked:[]};
- players.set(socket.id,p);socket.emit("welcome",{id:socket.id,players:[...players.values()]});socket.broadcast.emit("player-joined",p);sendBoss();socket.emit("progress",{skillPoints:p.skillPoints,unlocked:p.unlocked});
- socket.on("move",d=>{const q=players.get(socket.id);if(!q||!d)return;q.x=Math.max(-43,Math.min(43,Number(d.x)||0));q.z=Math.max(-43,Math.min(43,Number(d.z)||0));q.y=Math.max(0,Math.min(5,Number(d.y)||0));q.yaw=Number.isFinite(Number(d.yaw))?Number(d.yaw):q.yaw;if([2,3,4,5].includes(+d.gear))q.gear=+d.gear;socket.broadcast.emit("player-moved",q)});
- socket.on("stance",d=>{const q=players.get(socket.id);if(!q)return;if(d?.action==="block")q.blocking=!!d.enabled;if(d?.action==="haki")q.haki=!!d.enabled&&q.stamina>=10;socket.emit("stats",q);socket.broadcast.emit("player-stance",{id:q.id,blocking:q.blocking,haki:q.haki})});
- socket.on("dodge",d=>{const q=players.get(socket.id);if(!q||q.stamina<18||Date.now()<q.dodgingUntil)return;q.stamina-=18;q.blocking=false;q.dodgingUntil=Date.now()+520;const a=Number(d?.yaw)||0;q.x=Math.max(-43,Math.min(43,q.x+Math.sin(a)*4.2));q.z=Math.max(-43,Math.min(43,q.z+Math.cos(a)*4.2));socket.emit("dodged",{x:q.x,z:q.z,stamina:q.stamina});socket.broadcast.emit("player-dodged",{id:q.id,x:q.x,z:q.z})});
- socket.on("unlock-skill",skill=>{const q=players.get(socket.id);if(!q||!["conqueror","will"].includes(skill)||q.unlocked.includes(skill))return;const cost=skill==="conqueror"?2:1;if(q.skillPoints<cost)return;q.skillPoints-=cost;q.unlocked.push(skill);socket.emit("progress",{skillPoints:q.skillPoints,unlocked:q.unlocked});socket.broadcast.emit("player-progress",{id:q.id,unlocked:q.unlocked})});
- socket.on("special",d=>{const q=players.get(socket.id);if(!q||!q.unlocked.includes("conqueror")||q.stamina<32||q.hp<=0)return;const now=Date.now(),key=socket.id+":conqueror";if(now-(cooldowns.get(key)||0)<11000)return;cooldowns.set(key,now);q.stamina-=32;damageBoss(95*(q.gear===5?1.45:1)*(q.haki?1.3:1),socket.id);io.emit("conqueror-wave",{id:q.id,x:q.x,z:q.z});for(const target of players.values()){if(target.id===q.id||target.hp<=0)continue;if(Math.hypot(target.x-q.x,target.z-q.z)<7){target.hp=Math.max(0,target.hp-3);io.to(target.id).emit("got-hit",{hp:target.hp,damage:3,blocked:false,from:q.id})}}});
- socket.on("attack",d=>{const a=players.get(socket.id);if(!a||a.hp<=0)return;const kind=["pistol","gatling","kong","redhawk","rifle"].includes(d?.kind)?d.kind:"pistol";const now=Date.now(),key=socket.id+":"+kind,cd={pistol:330,gatling:145,kong:1250,redhawk:850,rifle:700}[kind];if(now-(cooldowns.get(key)||0)<cd)return;cooldowns.set(key,now);const range={pistol:6.2,gatling:4.8,kong:8.5,redhawk:6.5,rifle:10.5}[kind],base={pistol:10,gatling:4,kong:29,redhawk:21,rifle:17}[kind];const combo=Math.max(1,Math.min(3,Math.floor(Number(d?.combo)||1)));const aerial=Number(a.y)>1?1.16:1;const damage=base*(combo===3?1.42:combo===2?1.18:1)*aerial*(a.gear===4?1.2:a.gear===5?1.35:1)*(a.haki?1.35:1)*(a.unlocked.includes("will")?1.12:1);const angle=Number(d?.yaw)||0,fx=Math.sin(angle),fz=Math.cos(angle),victims=[];for(const target of players.values()){if(target.id===socket.id||target.hp<=0||Date.now()<target.dodgingUntil)continue;const vx=target.x-a.x,vz=target.z-a.z,dist=Math.hypot(vx,vz);if(dist>range||dist<.01)continue;const dot=(vx/dist)*fx+(vz/dist)*fz;if(dot<(kind==="kong"?.05:.25))continue;let dealt=damage;if(target.blocking)dealt*=.22;if(target.haki)dealt*=.62;target.hp=Math.max(0,Math.round(target.hp-dealt));victims.push({id:target.id,hp:target.hp,damage:Math.round(dealt),blocked:target.blocking});io.to(target.id).emit("got-hit",{hp:target.hp,damage:Math.round(dealt),blocked:target.blocking,from:socket.id})}const bossDist=Math.hypot(a.x-boss.x,a.z-boss.z),bossDot=bossDist<.01?1:((boss.x-a.x)/bossDist)*fx+((boss.z-a.z)/bossDist)*fz;if(boss.hp>0&&bossDist<=range+1.5&&bossDot>.15)damageBoss(damage*(kind==="kong"?1.5:1),socket.id);io.emit("player-attack",{id:socket.id,kind,x:a.x,z:a.z,gear:a.gear,haki:a.haki,yaw:angle,combo,aerial:!!a.y,victims})});
- socket.on("respawn",()=>{const q=players.get(socket.id);if(q){q.hp=q.maxHp;q.stamina=100;q.blocking=false;q.haki=false;q.dodgingUntil=0;q.x=0;q.z=0;socket.emit("stats",q);io.emit("player-respawned",q)}});
- socket.on("disconnect",()=>{players.delete(socket.id);for(const k of cooldowns.keys())if(k.startsWith(socket.id+":"))cooldowns.delete(k);io.emit("player-left",socket.id)});
+
+const app = express();
+app.disable("x-powered-by");
+
+const page = `<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101827">
+  <title>Проект остановлен</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(ellipse at top,#263b58,#101827 65%);color:#f4f7fb;font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
+    main{width:min(100%,520px);text-align:center;padding:40px 28px;border:1px solid #40516b;border-radius:22px;background:#172337e8;box-shadow:0 24px 80px #0006}
+    .logo{font-size:12px;letter-spacing:.2em;color:#9eafc8}
+    h1{margin:18px 0 10px;font-size:clamp(28px,7vw,42px)}
+    p{margin:0;color:#c2ccdb}
+    small{display:block;margin-top:28px;color:#7f91aa}
+  </style>
+</head>
+<body>
+  <main>
+    <div class="logo">ONE PIECE · GRAND ARENA</div>
+    <h1>Проект остановлен</h1>
+    <p>Игровой сервер и онлайн-матчи отключены. Исходный код проекта сохранён.</p>
+    <small>Страница технического отключения</small>
+  </main>
+</body>
+</html>`;
+
+app.use((req, res) => {
+  res.status(410);
+  res.set("Cache-Control", "no-store, max-age=0");
+  res.type("html").send(page);
 });
-setInterval(()=>{const now=Date.now();for(const p of players.values()){if(p.haki){p.stamina=Math.max(0,p.stamina-2);if(!p.stamina)p.haki=false}else p.stamina=Math.min(100,p.stamina+.8);if(p.hp>0)io.to(p.id).emit("stamina",{stamina:Math.round(p.stamina),haki:p.haki})}
- if(boss.hp>0&&boss.phase!=="windup"&&boss.phase!=="defeated"&&now>=boss.nextAttack){boss.phase="windup";sendBoss();io.emit("boss-warning",{x:boss.x,z:boss.z,radius:8,windup:1700});bossTimer=setTimeout(()=>{if(boss.hp<=0)return;boss.phase="slam";for(const p of players.values()){if(p.hp<=0||Math.hypot(p.x-boss.x,p.z-boss.z)>8||Date.now()<p.dodgingUntil)continue;let dmg= p.blocking?8:p.haki?13:22;p.hp=Math.max(0,p.hp-dmg);io.to(p.id).emit("got-hit",{hp:p.hp,damage:dmg,blocked:p.blocking,from:"boss"})}io.emit("boss-slam");sendBoss();setTimeout(()=>{boss.phase="idle";boss.nextAttack=Date.now()+6800;sendBoss()},900)},1700)}
-},500);
-server.listen(process.env.PORT||3000,"0.0.0.0",()=>console.log("Grand Arena boss server online"));
+
+const server = http.createServer(app);
+const port = Number(process.env.PORT) || 3000;
+server.listen(port, "0.0.0.0", () => {
+  console.log("ONE PIECE: GRAND ARENA is shut down; source code is preserved.");
+});
