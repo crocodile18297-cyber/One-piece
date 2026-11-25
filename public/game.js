@@ -19,6 +19,9 @@ function applyCharacterGear(character,n){
  r.gear3.visible=n===3;
  r.gear4.visible=n===4;
  r.gear5.visible=n===5;
+ r.bodyShell.visible=n!==4&&n!==5;
+ r.nikaLegs.visible=n===5;
+ r.nikaSleeves.forEach(sleeve=>sleeve.visible=n===5);
  r.hat.visible=n!==5;
  r.hair.visible=n!==5;
  r.whiteHair.visible=n===5;
@@ -150,9 +153,9 @@ function animate(){
  const land=local.userData.landPulse||0,air=onGround?0:1;
  {
  // Body bounce, squash and stretch on take-off / landing.
- rig.torso.position.y=1.35+(onGround?Math.abs(Math.sin(t*(moving?22:2)))*.025:Math.sin(t*9)*.045);
+ rig.torso.position.y=1.92+(onGround?Math.abs(Math.sin(t*(moving?22:2)))*.025:Math.sin(t*9)*.045);
  rig.torso.scale.y=1+air*.09-land*.12;rig.torso.scale.x=1-air*.045+land*.06;rig.torso.scale.z=1-air*.045+land*.06;
- local.scale.y=(gear===3?1.08:gear===4?1.1:1)*(1+air*.035+land*.035);
+ local.scale.y=(gear===3?1.06:gear===4?1.08:1)*(1+air*.035+land*.035);
  const motion=local.userData.attackMotion,age=motion?(now-motion.started)/motion.duration:2,pulse=motion&&age<1?Math.sin(Math.max(0,age)*Math.PI):0;
  let leftArm=0,rightArm=0,armStretch=1,torsoTwist=0;
  if(blocking){leftArm=-1.05;rightArm=-1.05}
