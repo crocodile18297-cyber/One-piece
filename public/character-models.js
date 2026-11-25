@@ -358,9 +358,13 @@ export function createPirate() {
   rig.nikaLegs=new THREE.Group(); rig.gear5.add(rig.nikaLegs);
   for(const side of [-1,1]){
     const trouser=new THREE.Group(); trouser.position.set(side*.20,1.10,0); rig.nikaLegs.add(trouser);
-    capsule(trouser,M.white,[0,-.13,0],.135,.21);
-    sphere(trouser,M.whiteHi,[side*-.015,-.12,.07],[.08,.14,.055],18);
-    torus(trouser,M.whiteShade,[0,-.28,0],.112,.014,[Math.PI/2,0,0],24);
+    // Long, tapered trouser leg down to the ankle; the base legs are hidden in Gear 5.
+    capsule(trouser,M.white,[0,-.37,0],.125,.58);
+    sphere(trouser,M.whiteHi,[side*-.018,-.34,.07],[.07,.30,.045],18);
+    torus(trouser,M.whiteShade,[0,-.73,0],.11,.012,[Math.PI/2,0,0],24);
+    // Nika's bare foot and individual toes peek out below the loose trouser cuff.
+    sphere(trouser,M.skin,[0,-.84,.075],[.105,.075,.19],22);
+    for(let toe=0;toe<4;toe++)sphere(trouser,M.skinHi,[-.055+toe*.037,-.86,.22],[.023,.035,.045],12);
   }
   rig.nikaSmile=new THREE.Group(); rig.head.add(rig.nikaSmile);
   // Nika's wide smile overlays the standard mouth without changing the skull size.
@@ -390,7 +394,7 @@ export function createPirate() {
   rig.whiteHair.visible=false;
   rig.nikaSmile.visible=false;
   rig.baseScale=1;
-  rig.modelQuality="grand-arena-v3.3";
+  rig.modelQuality="grand-arena-v3.4";
   rig.bodyShell.visible=true;
   root.userData={rig,baseScale:1,gear:2,haki:false,modelQuality:"grand-arena-v3"};
   return root;
