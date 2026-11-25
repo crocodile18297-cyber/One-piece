@@ -1,4 +1,5 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+import {loadCharacterTemplate,installCharacterModel,updateCharacterAnimation} from "./character-rig.js";
 const socket=io(),scene=new THREE.Scene();scene.background=new THREE.Color(0x91c9e9);scene.fog=new THREE.Fog(0x91c9e9,38,100);
 const camera=new THREE.PerspectiveCamera(58,innerWidth/innerHeight,.1,160);camera.position.set(0,6.65,-10.2);camera.lookAt(0,1.35,0);
 const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;document.getElementById("game").appendChild(renderer.domElement);
@@ -83,17 +84,23 @@ function pirate(){
 function applyCharacterGear(character,n){
  const r=character.userData.rig;if(!r)return;
  character.userData.gear=n;
+ if(r.isGLB){
+  r.gear3.visible=n===3;r.gear4.visible=n===4;r.gear5.visible=n===5;
+  r.hat.visible=n!==5;r.hair.visible=n!==5;r.whiteHair.visible=n===5;
+  r.vest.visible=n!==4&&n!==5;
+  r.arms.forEach((a,i)=>a.visible=n!==4&&!(n===3&&i===1));
+  r.legs.forEach(a=>a.scale.setScalar(n===4?1.08:1));
+  character.scale.setScalar(n===3?1.06:n===4?1.08:1);
+  return;
+ }
  r.gear3.visible=n===3;r.gear4.visible=n===4;r.gear5.visible=n===5;
  r.hat.visible=n!==5;r.hair.visible=n!==5;r.hairSpikes.forEach(p=>p.visible=n!==5);
- r.whiteHair.visible=n===5;
- character.scale.setScalar(n===3?1.08:n===4?1.1:1);
+ r.whiteHair.visible=n===5;character.scale.setScalar(n===3?1.08:n===4?1.1:1);
  r.torso.scale.set(n===4?1.16:1,n===4?1.08:1,n===4?1.08:1);
- r.arms.forEach(a=>a.visible=n!==3&&n!==4);
- r.legs.forEach(a=>a.scale.setScalar(n===4?1.12:1));
+ r.arms.forEach(a=>a.visible=n!==3&&n!==4);r.legs.forEach(a=>a.scale.setScalar(n===4?1.12:1));
  if(n===3){r.giantArm.visible=true;r.giantArm.rotation.z=-.15}
  if(n===5){r.cloudRing.visible=true;r.cloudRing.rotation.z=0}
  r.vest.visible=n!==4&&n!==5;
- // Gear materials are created once on the rig; no external closure variables are needed.
 }
 function setCharacterHaki(character,on){
  const r=character.userData.rig;if(!r)return;character.userData.haki=on;
@@ -104,6 +111,13 @@ function setCharacterHaki(character,on){
 }
 
 const local=pirate();scene.add(local);const others=new Map(),effects=[];
+let characterTemplate=null;
+loadCharacterTemplate("/assets/strawhat-captain-rig.glb.gz").then(template=>{
+ characterTemplate=template;
+ installCharacterModel(local,template,applyCharacterGear,setCharacterHaki,aura);
+ for(const player of others.values())installCharacterModel(player,template,applyCharacterGear,setCharacterHaki,aura);
+ toast("3D-МОДЕЛЬ ЛУФФИ ЗАГРУЖЕНА");
+}).catch(error=>console.error("Не удалось загрузить GLB персонажа; используется резервная модель:",error));
 const bossRoot=new THREE.Group();bossRoot.position.set(0,0,-15);scene.add(bossRoot);
 const bossMat=mat(0x26384d,.42,.45),bossGold=mat(0xd8a84e,.3,.55),bossCape=mat(0x8d2935,.8),bossSkin=mat(0xd99b78);
 mesh(new THREE.CylinderGeometry(.72,.95,1.65,12),bossMat,bossRoot,0,1.25,0);
@@ -129,7 +143,7 @@ function aura(p,n){if(p.userData.aura){p.remove(p.userData.aura);p.userData.aura
 function setGear(n){gear=n;local.userData.gear=n;applyCharacterGear(local,n);setCharacterHaki(local,hakiOn);aura(local,n);document.querySelectorAll(".gear").forEach(b=>b.classList.toggle("active",+b.dataset.gear===n));document.getElementById("gearLabel").textContent="GEAR "+n+" · "+({2:"BASE",3:"GIANT",4:"BOUND-MAN",5:"NIKA"}[n]);socket.emit("move",{x:local.position.x,z:local.position.z,gear:n});toast("GEAR "+n+" ACTIVATED")}
 document.querySelectorAll(".gear").forEach(b=>b.onclick=()=>setGear(+b.dataset.gear));
 function toast(s){const e=document.getElementById("toast");e.textContent=s;e.style.opacity=1;clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.opacity=0,1250)}
-function addOther(p){if(others.has(p.id))return;const m=pirate();m.position.set(p.x||0,0,p.z||0);m.rotation.y=Number(p.yaw)||0;m.userData.targetYaw=Number(p.yaw)||0;scene.add(m);others.set(p.id,m);updateOnline();if(p.gear){applyCharacterGear(m,p.gear);aura(m,p.gear)}}
+function addOther(p){if(others.has(p.id))return;const m=pirate();m.position.set(p.x||0,0,p.z||0);m.rotation.y=Number(p.yaw)||0;m.userData.targetYaw=Number(p.yaw)||0;scene.add(m);others.set(p.id,m);if(characterTemplate)installCharacterModel(m,characterTemplate,applyCharacterGear,setCharacterHaki,aura);updateOnline();if(p.gear){applyCharacterGear(m,p.gear);aura(m,p.gear)}}
 function updateOnline(){document.getElementById("online").textContent=(others.size+1)+" пират(ов) онлайн"}
 socket.on("welcome",d=>{myId=d.id;d.players.filter(p=>p.id!==myId).forEach(addOther);updateOnline();toast("Добро пожаловать на Гранд-лайн")});
 socket.on("player-joined",p=>{addOther(p);toast("Новый пират присоединился")});
@@ -139,7 +153,7 @@ socket.on("player-attack",d=>{const attacker=d.id===myId?local:others.get(d.id);
 socket.on("got-hit",d=>{hp=d.hp;updateHealth();if(d.blocked)toast("БЛОК · УРОН СНИЖЕН");local.userData.hitFlash=.18;toast("ПОПАДАНИЕ · -"+Math.round(d.damage)+" HP");if(hp<=0){toast("ТЫ ПРОИГРАЛ · ВОЗРОЖДЕНИЕ");setTimeout(()=>socket.emit("respawn"),1800)}});
 socket.on("stats",p=>{hp=p.hp;local.position.set(p.x,0,p.z);updateHealth();if(p.stamina!==undefined)updateStamina(p.stamina);setBlockVisual(!!p.blocking);setHakiVisual(!!p.haki)});socket.on("player-respawned",p=>{const m=others.get(p.id);if(m){m.position.set(p.x,0,p.z)}});
 function updateHealth(){document.getElementById("hpText").textContent=hp+" / 100";document.getElementById("hpBar").style.width=hp+"%"}
-let stamina=100,blocking=false,hakiOn=false,attackAnimUntil=0;function updateStamina(v){stamina=v;const el=document.getElementById("staminaBar");if(el)el.style.width=v+"%";const t=document.getElementById("staminaText");if(t)t.textContent=Math.round(v)+"%"}function setBlockVisual(v){blocking=v;document.getElementById("blockBtn")?.classList.toggle("selected",v)}function setHakiVisual(v){hakiOn=v;document.getElementById("hakiBtn")?.classList.toggle("selected",v);setCharacterHaki(local,v);aura(local,gear)}function dashEffect(pos,color){const r=new THREE.Mesh(new THREE.TorusGeometry(.85,.06,8,24),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.8}));r.rotation.x=Math.PI/2;r.position.copy(pos);r.position.y=.15;scene.add(r);effects.push({mesh:r,dir:new THREE.Vector3(),life:20,speed:0})}function setBlock(v){blocking=v;socket.emit("stance",{action:"block",enabled:v});setBlockVisual(v)}function toggleHaki(){hakiOn=!hakiOn;if(hakiOn&&stamina<10){hakiOn=false;toast("НЕДОСТАТОЧНО ВЫНОСЛИВОСТИ");return}socket.emit("stance",{action:"haki",enabled:hakiOn});setHakiVisual(hakiOn);toast(hakiOn?"ВООРУЖЕНИЕ ХАКИ ВКЛЮЧЕНО":"ХАКИ ВЫКЛЮЧЕНО")}function dodge(){if(stamina<18){toast("НЕДОСТАТОЧНО ВЫНОСЛИВОСТИ");return}blocking=false;setBlockVisual(false);socket.emit("dodge",{yaw})}
+let stamina=100,blocking=false,hakiOn=false,attackAnimUntil=0;function updateStamina(v){stamina=v;const el=document.getElementById("staminaBar");if(el)el.style.width=v+"%";const t=document.getElementById("staminaText");if(t)t.textContent=Math.round(v)+"%"}function setBlockVisual(v){blocking=v;document.getElementById("blockBtn")?.classList.toggle("selected",v)}function setHakiVisual(v){hakiOn=v;document.getElementById("hakiBtn")?.classList.toggle("selected",v);setCharacterHaki(local,v);aura(local,gear)}function dashEffect(pos,color){const r=new THREE.Mesh(new THREE.TorusGeometry(.85,.06,8,24),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.8}));r.rotation.x=Math.PI/2;r.position.copy(pos);r.position.y=.15;scene.add(r);effects.push({mesh:r,dir:new THREE.Vector3(),life:20,speed:0})}function setBlock(v){blocking=v;socket.emit("stance",{action:"block",enabled:v});setBlockVisual(v)}function toggleHaki(){hakiOn=!hakiOn;if(hakiOn&&stamina<10){hakiOn=false;toast("НЕДОСТАТОЧНО ВЫНОСЛИВОСТИ");return}socket.emit("stance",{action:"haki",enabled:hakiOn});setHakiVisual(hakiOn);toast(hakiOn?"ВООРУЖЕНИЕ ХАКИ ВКЛЮЧЕНО":"ХАКИ ВЫКЛЮЧЕНО")}function dodge(){if(stamina<18){toast("НЕДОСТАТОЧНО ВЫНОСЛИВОСТИ");return}blocking=false;setBlockVisual(false);local.userData.attackMotion={kind:"dodge",started:performance.now(),duration:500};socket.emit("dodge",{yaw})}
 function attack(kind="pistol"){const now=performance.now();if(now<attackLock)return;const cd={pistol:280,gatling:105,kong:950,redhawk:700,rifle:580}[kind];attackLock=now+cd;combo=comboTimer>now?combo%3+1:1;comboTimer=now+850;const rig=local.userData.rig,arm=rig.arms[1];arm.rotation.x=-1.65;arm.rotation.z=-.38;attackAnimUntil=performance.now()+240;local.userData.attackMotion={kind,started:performance.now(),duration:kind==="gatling"?115:kind==="kong"?520:kind==="redhawk"?430:260,combo};
  const n=gear,color=n===5?0xffffff:n===4?0x9d5cff:n===3?0xffc15a:kind==="redhawk"?0xff321f:0xff7a39;
  const size=kind==="kong"?1.1:kind==="gatling"?.34:.55;const orb=new THREE.Mesh(new THREE.SphereGeometry(size,20,16),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.84}));orb.position.copy(local.position).add(new THREE.Vector3(Math.sin(yaw)*1.15,1.45,Math.cos(yaw)*1.15));scene.add(orb);
@@ -177,6 +191,13 @@ function animate(){
  if(!wasGrounded&&onGround)local.userData.landPulse=1;if(!wasGrounded&&onGround){const shock=new THREE.Mesh(new THREE.RingGeometry(.25,1.05,32),new THREE.MeshBasicMaterial({color:gear===5?0xffffff:0xe7b94e,transparent:true,opacity:.7,side:THREE.DoubleSide}));shock.rotation.x=-Math.PI/2;shock.position.set(local.position.x,.04,local.position.z);scene.add(shock);effects.push({mesh:shock,dir:new THREE.Vector3(),life:18,speed:0});}
  local.userData.landPulse=Math.max(0,(local.userData.landPulse||0)-dt*2.8);
  const land=local.userData.landPulse||0,air=onGround?0:1;
+ if(rig.isGLB){
+  local.userData.running=Math.hypot(strafe,forward)>.78;
+  updateCharacterAnimation(local,dt,moving,onGround,blocking);
+  if(gear===5){rig.cloudRing.rotation.z=t*.55;rig.gear5.position.y=1.55+Math.sin(t*3.2)*.035;rig.whiteHair.rotation.z=Math.sin(t*2.4)*.035}
+  if(gear===3){rig.giantArm.rotation.z=-.15+Math.sin(t*2)*.035;rig.giantArm.rotation.x=Math.sin(t*1.6)*.045}
+  if(gear===4)rig.gear4.rotation.y=Math.sin(t*2)*.025;
+ }else{
  // Body bounce, squash and stretch on take-off / landing.
  rig.torso.position.y=1.35+(onGround?Math.abs(Math.sin(t*(moving?22:2)))*.025:Math.sin(t*9)*.045);
  rig.torso.scale.y=1+air*.09-land*.12;rig.torso.scale.x=1-air*.045+land*.06;rig.torso.scale.z=1-air*.045+land*.06;
@@ -203,12 +224,21 @@ function animate(){
  if(gear===5){rig.cloudRing.rotation.z=t*.55;rig.cloudRing.scale.setScalar(1+.045*Math.sin(t*4));rig.gear5.rotation.y=Math.sin(t*1.7)*.025;rig.gear5.position.y=1.48+Math.sin(t*3.2)*.055;rig.whiteHair.rotation.z=Math.sin(t*2.4)*.035}
  if(gear===3){rig.giantArm.rotation.z=-.15+Math.sin(t*2)*.035;rig.giantArm.rotation.x=Math.sin(t*1.6)*.045;rig.giantArm.scale.set(1,1+(pulse>0?.18*pulse:0),1)}
  if(gear===4){rig.gear4.rotation.y=Math.sin(t*2)*.025;rig.gear4Arms.forEach((a,i)=>{a.rotation.z=Math.sin(t*3+i*Math.PI)*.12;a.rotation.x=Math.cos(t*2.5+i*Math.PI)*.08})}
+ }
  bossRoot.rotation.y=Math.sin(t*.7)*.18;bossRoot.position.y=bossPhase==="windup"?.08*Math.sin(t*24):Math.sin(t*2)*.035;
  if(local.userData.hitFlash>0){local.userData.hitFlash-=dt;local.traverse(o=>{if(o.isMesh&&o.material?.emissive){o.material.emissive.setHex(0xff2222);o.material.emissiveIntensity=.5}})}
  for(const m of others.values()){
   if(m.userData.target){m.position.lerp(m.userData.target,.2);if(Number.isFinite(m.userData.targetYaw)){const da=Math.atan2(Math.sin(m.userData.targetYaw-m.rotation.y),Math.cos(m.userData.targetYaw-m.rotation.y));m.rotation.y+=da*.2}}
   const rr=m.userData.rig;if(!rr)continue;
-  const otherMoving=m.userData.target&&m.position.distanceTo(m.userData.target)>.025,otherStep=otherMoving?Math.sin(t*9)*.3:Math.sin(t*1.8)*.018;
+  const otherMoving=!!(m.userData.target&&m.position.distanceTo(m.userData.target)>.025);
+  if(rr.isGLB){
+   m.userData.running=otherMoving;
+   updateCharacterAnimation(m,dt,otherMoving,true,!!m.userData.blocking);
+   if(m.userData.gear===5){rr.cloudRing.rotation.z=t*.5;rr.gear5.position.y=1.55+Math.sin(t*3)*.035}
+   else if(m.userData.gear===3)rr.giantArm.rotation.z=-.15+Math.sin(t*2)*.03;
+   else if(m.userData.gear===4)rr.gear4.rotation.y=Math.sin(t*2)*.02;
+  }else{
+  const otherStep=otherMoving?Math.sin(t*9)*.3:Math.sin(t*1.8)*.018;
   rr.legs[0].rotation.x=otherStep;rr.legs[1].rotation.x=-otherStep;
   const am=m.userData.attackMotion,aa=am?(now-am.started)/am.duration:2,ap=am&&aa<1?Math.sin(Math.max(0,aa)*Math.PI):0;
   if(m.userData.blocking){rr.arms[0].rotation.x=-1.05;rr.arms[1].rotation.x=-1.05}
@@ -217,6 +247,7 @@ function animate(){
   if(m.userData.gear===5){rr.cloudRing.rotation.z=t*.5;rr.gear5.position.y=1.48+Math.sin(t*3)*.045}
   else if(m.userData.gear===3)rr.giantArm.rotation.z=-.15+Math.sin(t*2)*.03;
   else if(m.userData.gear===4)rr.gear4.rotation.y=Math.sin(t*2)*.02;
+  }
  }
  if(t-lastSend>.06){socket.emit("move",{x:local.position.x,y:local.position.y,z:local.position.z,yaw,gear});lastSend=t}
  for(let i=effects.length-1;i>=0;i--){const f=effects[i];f.mesh.position.addScaledVector(f.dir,f.speed);f.life--;f.mesh.scale.multiplyScalar(1.035);if(f.life<=0){scene.remove(f.mesh);effects.splice(i,1)}}
