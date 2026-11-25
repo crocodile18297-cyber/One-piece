@@ -153,12 +153,44 @@ stick.addEventListener("pointerdown",e=>{touching=true;stick.setPointerCapture(e
 document.getElementById("mSpecial").onclick=()=>document.getElementById("specialBtn").click();document.getElementById("unlockConqueror").onclick=()=>socket.emit("unlock-skill","conqueror");document.getElementById("unlockWill").onclick=()=>socket.emit("unlock-skill","will");document.getElementById("skillTreeBtn").onclick=()=>document.getElementById("skillModal").classList.toggle("open");document.getElementById("closeSkills").onclick=()=>document.getElementById("skillModal").classList.remove("open");
 document.getElementById("mJump").onclick=()=>{if(onGround){velocityY=8.5;onGround=false}};document.getElementById("mAttack").onclick=()=>attack("pistol");document.getElementById("mBlock").addEventListener("pointerdown",()=>setBlock(true));document.getElementById("mBlock").addEventListener("pointerup",()=>setBlock(false));document.getElementById("mBlock").addEventListener("pointerleave",()=>setBlock(false));document.getElementById("mHaki").onclick=toggleHaki;document.getElementById("mDodge").onclick=dodge;document.getElementById("blockBtn").addEventListener("pointerdown",()=>setBlock(true));document.getElementById("blockBtn").addEventListener("pointerup",()=>setBlock(false));document.getElementById("blockBtn").addEventListener("pointerleave",()=>setBlock(false));document.getElementById("hakiBtn").onclick=toggleHaki;document.getElementById("dodgeBtn").onclick=dodge;
 const clock=new THREE.Clock();
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),t=clock.elapsedTime,rig=local.userData.rig;let dx=(keys.d?1:0)-(keys.a?1:0)+joy.x,dz=(keys.s?1:0)-(keys.w?1:0)+joy.y,len=Math.hypot(dx,dz);if(len>1){dx/=len;dz/=len}const moving=len>.08,speed=gear===4?8.5:gear===5?7.5:gear===3?5.2:6.5;local.position.x=THREE.MathUtils.clamp(local.position.x+dx*speed*dt,-43,43);local.position.z=THREE.MathUtils.clamp(local.position.z+dz*speed*dt,-43,43);if(moving){yaw=Math.atan2(dx,dz);local.rotation.y=yaw}if(blocking){rig.arms[0].rotation.x=-1.05;rig.arms[1].rotation.x=-1.05;rig.arms[0].rotation.z=.25;rig.arms[1].rotation.z=-.25}else if(t>attackAnimUntil){rig.arms[0].rotation.x=-swing*.7;rig.arms[1].rotation.x=-swing*.7;rig.arms[0].rotation.z=0;rig.arms[1].rotation.z=0}
- if((keys[" "]||keys.space)&&onGround){velocityY=8.5;onGround=false}if(!onGround){local.position.y+=velocityY*dt;velocityY-=22*dt;if(local.position.y<=0){local.position.y=0;velocityY=0;onGround=true}}rig.torso.position.y=1.35+(onGround?0:Math.sin(t*9)*.035);rig.legs.forEach((leg,i)=>{if(!onGround)leg.rotation.x=i===0?-.42:.55});if(onGround&&moving){rig.arms[0].rotation.z=Math.sin(t*11)*.06;rig.arms[1].rotation.z=-Math.sin(t*11)*.06}
- if(gear===5){rig.cloudRing.rotation.z=t*.55;rig.cloudRing.scale.setScalar(1+.045*Math.sin(t*4));rig.gear5.rotation.y=Math.sin(t*1.7)*.025;rig.gear5.position.y=1.48+Math.sin(t*3.2)*.055;rig.whiteHair.rotation.z=Math.sin(t*2.4)*.035}if(gear===3){rig.giantArm.rotation.z=-.15+Math.sin(t*2)*.035;rig.giantArm.rotation.x=Math.sin(t*1.6)*.045}if(gear===4){rig.gear4.rotation.y=Math.sin(t*2)*.025;rig.gear4Arms.forEach((a,i)=>{a.rotation.z=Math.sin(t*3+i*Math.PI)*.12;a.rotation.x=Math.cos(t*2.5+i*Math.PI)*.08})}bossRoot.rotation.y=Math.sin(t*.7)*.18;bossRoot.position.y=bossPhase==="windup"?.08*Math.sin(t*24):Math.sin(t*2)*.035;rig.legs[0].rotation.x=swing;rig.legs[1].rotation.x=-swing;if(!blocking){rig.arms[0].rotation.x=-swing*.7;rig.arms[1].rotation.x=swing*.7;rig.arms[0].rotation.z=0;rig.arms[1].rotation.z=0;}rig.torso.rotation.z=moving?Math.sin(t*11)*.035:0;rig.head.rotation.y=Math.sin(t*1.4)*.035;
+function animate(){
+ requestAnimationFrame(animate);
+ const dt=Math.min(clock.getDelta(),.04),t=clock.elapsedTime,rig=local.userData.rig;
+ let dx=(keys.d?1:0)-(keys.a?1:0)+joy.x,dz=(keys.s?1:0)-(keys.w?1:0)+joy.y,len=Math.hypot(dx,dz);
+ if(len>1){dx/=len;dz/=len}
+ const moving=len>.08,swing=moving?Math.sin(t*11)*.48:Math.sin(t*2)*.025,speed=gear===4?8.5:gear===5?7.5:gear===3?5.2:6.5;
+ local.position.x=THREE.MathUtils.clamp(local.position.x+dx*speed*dt,-43,43);
+ local.position.z=THREE.MathUtils.clamp(local.position.z+dz*speed*dt,-43,43);
+ if(moving){yaw=Math.atan2(dx,dz);local.rotation.y=yaw}
+ if((keys[" "]||keys.space)&&onGround){velocityY=8.5;onGround=false}
+ if(!onGround){local.position.y+=velocityY*dt;velocityY-=22*dt;if(local.position.y<=0){local.position.y=0;velocityY=0;onGround=true}}
+ rig.torso.position.y=1.35+(onGround?0:Math.sin(t*9)*.035);
+ const motion=local.userData.attackMotion,age=motion?(performance.now()-motion.started)/motion.duration:2,pulse=motion&&age<1?Math.sin(Math.max(0,age)*Math.PI):0;
+ if(blocking){rig.arms[0].rotation.x=-1.05;rig.arms[1].rotation.x=-1.05;rig.arms[0].rotation.z=.25;rig.arms[1].rotation.z=-.25}
+ else if(pulse>0){const power=motion.kind==="kong"?1.45:motion.kind==="redhawk"?1.25:1;rig.arms[1].rotation.x=-1.65*pulse*power;rig.arms[1].rotation.z=-.38*pulse;rig.arms[0].rotation.x=.22*pulse;rig.torso.rotation.y=Math.sin(age*Math.PI)*.28;rig.torso.rotation.z=-.12*pulse}
+ else {rig.arms[0].rotation.x=-swing*.7;rig.arms[1].rotation.x=-swing*.7;rig.arms[0].rotation.z=moving?Math.sin(t*11)*.06:0;rig.arms[1].rotation.z=moving?-Math.sin(t*11)*.06:0;rig.torso.rotation.y=0;rig.torso.rotation.z=moving?Math.sin(t*11)*.035:0}
+ rig.legs[0].rotation.x=onGround?swing:-.42;rig.legs[1].rotation.x=onGround?-swing:.55;
+ rig.head.rotation.y=Math.sin(t*1.4)*.035;
+ if(gear===5){rig.cloudRing.rotation.z=t*.55;rig.cloudRing.scale.setScalar(1+.045*Math.sin(t*4));rig.gear5.rotation.y=Math.sin(t*1.7)*.025;rig.gear5.position.y=1.48+Math.sin(t*3.2)*.055;rig.whiteHair.rotation.z=Math.sin(t*2.4)*.035}
+ if(gear===3){rig.giantArm.rotation.z=-.15+Math.sin(t*2)*.035;rig.giantArm.rotation.x=Math.sin(t*1.6)*.045}
+ if(gear===4){rig.gear4.rotation.y=Math.sin(t*2)*.025;rig.gear4Arms.forEach((a,i)=>{a.rotation.z=Math.sin(t*3+i*Math.PI)*.12;a.rotation.x=Math.cos(t*2.5+i*Math.PI)*.08})}
+ bossRoot.rotation.y=Math.sin(t*.7)*.18;bossRoot.position.y=bossPhase==="windup"?.08*Math.sin(t*24):Math.sin(t*2)*.035;
  if(local.userData.hitFlash>0){local.userData.hitFlash-=dt;local.traverse(o=>{if(o.isMesh&&o.material?.emissive){o.material.emissive.setHex(0xff2222);o.material.emissiveIntensity=.5}})}
- for(const m of others.values()){if(m.userData.target)m.position.lerp(m.userData.target,.2);const rr=m.userData.rig;if(rr){const otherMoving=m.userData.target&&m.position.distanceTo(m.userData.target)>.025;const step=otherMoving?Math.sin(t*9)*.3:Math.sin(t*1.8)*.018;rr.legs[0].rotation.x=step;rr.legs[1].rotation.x=-step;if(m.userData.blocking){rr.arms[0].rotation.x=-1.05;rr.arms[1].rotation.x=-1.05}else{rr.arms[0].rotation.x=-step*.65;rr.arms[1].rotation.x=step*.65}if(m.userData.gear===5){rr.cloudRing.rotation.z=t*.5;rr.gear5.position.y=1.48+Math.sin(t*3)*.045}else if(m.userData.gear===3){rr.giantArm.rotation.z=-.15+Math.sin(t*2)*.03}else if(m.userData.gear===4){rr.gear4.rotation.y=Math.sin(t*2)*.02}}}
+ for(const m of others.values()){
+  if(m.userData.target)m.position.lerp(m.userData.target,.2);
+  const rr=m.userData.rig;if(!rr)continue;
+  const movingOther=m.userData.target&&m.position.distanceTo(m.userData.target)>.025,step=movingOther?Math.sin(t*9)*.3:Math.sin(t*1.8)*.018;
+  rr.legs[0].rotation.x=step;rr.legs[1].rotation.x=-step;
+  if(m.userData.blocking){rr.arms[0].rotation.x=-1.05;rr.arms[1].rotation.x=-1.05}else{rr.arms[0].rotation.x=-step*.65;rr.arms[1].rotation.x=step*.65}
+  const am=m.userData.attackMotion,aa=am?(performance.now()-am.started)/am.duration:2,ap=am&&aa<1?Math.sin(Math.max(0,aa)*Math.PI):0;
+  if(ap>0&&!m.userData.blocking){rr.arms[1].rotation.x=-1.6*ap;rr.arms[1].rotation.z=-.35*ap;rr.torso.rotation.y=Math.sin(aa*Math.PI)*.22}
+  if(m.userData.gear===5){rr.cloudRing.rotation.z=t*.5;rr.gear5.position.y=1.48+Math.sin(t*3)*.045}
+  else if(m.userData.gear===3)rr.giantArm.rotation.z=-.15+Math.sin(t*2)*.03;
+  else if(m.userData.gear===4)rr.gear4.rotation.y=Math.sin(t*2)*.02;
+ }
  if(t-lastSend>.06){socket.emit("move",{x:local.position.x,y:local.position.y,z:local.position.z,gear});lastSend=t}
  for(let i=effects.length-1;i>=0;i--){const f=effects[i];f.mesh.position.addScaledVector(f.dir,f.speed);f.life--;f.mesh.scale.multiplyScalar(1.035);if(f.life<=0){scene.remove(f.mesh);effects.splice(i,1)}}
- const target=new THREE.Vector3(local.position.x-Math.sin(yaw)*.25,local.position.y+5.3,local.position.z-Math.cos(yaw)*8.5);camera.position.lerp(target,.085);camera.lookAt(local.position.x,local.position.y+1.35,local.position.z);renderer.render(scene,camera)}
+ const target=new THREE.Vector3(local.position.x-Math.sin(yaw)*.25,local.position.y+5.3,local.position.z-Math.cos(yaw)*8.5);
+ camera.position.lerp(target,.085);camera.lookAt(local.position.x,local.position.y+1.35,local.position.z);renderer.render(scene,camera)
+}
 animate();addEventListener("resize",()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
