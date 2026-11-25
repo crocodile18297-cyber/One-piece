@@ -57,7 +57,7 @@ function setCharacterHaki(character,on){
  };
  r.arms.forEach(apply);
 }
-const local=pirate();scene.add(local);const others=new Map(),effects=[];
+const local=pirate();scene.add(local);applyCharacterGear(local,2);setCharacterHaki(local,false);const others=new Map(),effects=[];
 const bossRoot=new THREE.Group();bossRoot.position.set(0,0,-15);scene.add(bossRoot);
 const bossMat=mat(0x26384d,.42,.45),bossGold=mat(0xd8a84e,.3,.55),bossCape=mat(0x8d2935,.8),bossSkin=mat(0xd99b78);
 mesh(new THREE.CylinderGeometry(.72,.95,1.65,12),bossMat,bossRoot,0,1.25,0);
