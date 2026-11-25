@@ -359,7 +359,7 @@ export function createPirate() {
 
   rig.hairSpikes=[];
   rig.whiteHair.visible=false;
-  rig.gear2.visible=false; rig.gear3.visible=false; rig.gear4.visible=false; rig.gear5.visible=false;
+  rig.gear2.visible=true; rig.gear3.visible=false; rig.gear4.visible=false; rig.gear5.visible=false;
   rig.cloudRing.visible=false; rig.gear3Steam.visible=false; rig.gear4Smoke.visible=false; rig.cloudMantle.visible=false;
   rig.nikaSmile.visible=false;
   rig.hat.visible=true;
