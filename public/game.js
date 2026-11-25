@@ -40,11 +40,24 @@ function applyCharacterGear(character,n){
 function setCharacterHaki(character,on){
  const r=character.userData.rig;if(!r)return;
  character.userData.haki=on;
- const material=on?r.materials.armament:r.materials.skin;
  const apply=(item)=>{
   if(!item)return;
-  if(item.isMesh){item.material=material;return;}
-  item.traverse?.(child=>{if(child.isMesh)const local=pirate();scene.add(local);const others=new Map(),effects=[];
+  const paint=child=>{
+   if(!child.isMesh)return;
+   if(on){
+    if(!child.userData.hakiBaseMaterial)child.userData.hakiBaseMaterial=child.material;
+    child.material=r.materials.armament;
+   }else if(child.userData.hakiBaseMaterial){
+    child.material=child.userData.hakiBaseMaterial;
+    delete child.userData.hakiBaseMaterial;
+   }
+  };
+  if(item.isMesh)paint(item);
+  else if(typeof item.traverse==="function")item.traverse(paint);
+ };
+ r.arms.forEach(apply);
+}
+const local=pirate();scene.add(local);const others=new Map(),effects=[];
 const bossRoot=new THREE.Group();bossRoot.position.set(0,0,-15);scene.add(bossRoot);
 const bossMat=mat(0x26384d,.42,.45),bossGold=mat(0xd8a84e,.3,.55),bossCape=mat(0x8d2935,.8),bossSkin=mat(0xd99b78);
 mesh(new THREE.CylinderGeometry(.72,.95,1.65,12),bossMat,bossRoot,0,1.25,0);
