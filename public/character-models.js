@@ -250,6 +250,11 @@ export function createPirate() {
   sphere(rig.giantArm,M.skin,[.42,-.94,.23],[.16,.18,.15],24);
   taper(rig.giantArm,M.skin,[.43,-.94,.25],[.53,-1.10,.40],.09,.065,16);
   torus(rig.giantArm,M.skinShade,[0,-.53,.04],.28,.014,[Math.PI/2,0,0],36);
+  for(let i=0;i<5;i++){
+    const y=-.56-i*.10;
+    tube(rig.giantArm,M.skinShade,[[-.19,y,.38],[-.07,y-.018,.43],[.08,y-.012,.42],[.20,y,.36]],.008,16);
+  }
+  torus(rig.giantArm,M.skinHi,[0,-.64,.20],.32,.018,[Math.PI/2,0,0],44);
   rig.gear3Steam=new THREE.Group(); rig.gear3.add(rig.gear3Steam);
   for(let i=0;i<7;i++){
     const a=i/7*Math.PI*2;
@@ -268,6 +273,10 @@ export function createPirate() {
     tube(rig.gear4,M.hakiHi,[[side*.28,1.98,.30],[side*.40,1.80,.32],[side*.34,1.64,.34]],.016,22);
     sphere(rig.gear4,M.purple,[side*.23,.95,.0],[.22,.25,.22],24);
   }
+  for(const side of [-1,1]){
+    tube(rig.gear4,M.haki,[[side*.47,2.07,.16],[side*.58,1.91,.20],[side*.52,1.74,.22]],.026,22);
+    tube(rig.gear4,M.redShade,[[side*.39,1.98,.23],[side*.30,1.80,.30],[side*.35,1.64,.31]],.012,20);
+  }
   rig.gear4Arms=[];
   for(const side of [-1,1]){
     const arm=new THREE.Group(); arm.position.set(side*.68,1.85,.03); rig.gear4.add(arm); rig.gear4Arms.push(arm);
@@ -283,7 +292,12 @@ export function createPirate() {
     capsule(rig.gear4,M.red,[side*.22,.71,0],.20,.24);
     capsule(rig.gear4,M.haki,[side*.22,.49,.02],.15,.16);
   }
-  torus(rig.gear4,M.purple,[0,1.03,0],.46,.065,[Math.PI/2,0,0],56);
+  sphere(rig.gear4,M.purple,[0,.80,.015],[.39,.20,.30],30);
+  for(const side of [-1,1]){
+    tube(rig.gear4,M.purpleHi,[[side*.34,.86,.20],[side*.27,.70,.235],[side*.12,.66,.24]],.014,22);
+    for(let i=0;i<4;i++)sphere(rig.gear4,M.stitch,[side*(.18+i*.035),.66,.245],[.008,.008,.006],7);
+  }
+    torus(rig.gear4,M.purple,[0,1.03,0],.46,.065,[Math.PI/2,0,0],56);
   for(let i=0;i<12;i++){
     const a=i/12*Math.PI*2;
     sphere(rig.gear4,M.purpleHi,[Math.cos(a)*.46,1.03,Math.sin(a)*.37],[.02,.026,.02],10);
@@ -307,6 +321,11 @@ export function createPirate() {
     for(let i=0;i<5;i++)sphere(nikaCoat,M.gold,[side*.04,-.20+i*.12,.28],[.012,.012,.009],8);
   }
   sphere(nikaCoat,M.white,[0,-.43,.02],[.29,.075,.23],26);
+  tube(nikaCoat,M.whiteShade,[[-.28,-.40,.13],[0,-.44,.20],[.28,-.40,.13]],.012,24);
+  for(const side of [-1,1]){
+    tube(nikaCoat,M.whiteHi,[[side*.24,.50,.28],[side*.31,.16,.27],[side*.25,-.22,.22]],.018,28);
+    sphere(nikaCoat,M.whiteHi,[side*.20,-.36,.19],[.09,.035,.025],16);
+  }
   for(const side of [-1,1]){
     sphere(nikaCoat,M.white,[side*.16,-.53,.01],[.16,.19,.19],24);
   }
@@ -371,7 +390,7 @@ export function createPirate() {
   rig.whiteHair.visible=false;
   rig.nikaSmile.visible=false;
   rig.baseScale=1;
-  rig.modelQuality="grand-arena-v3.2";
+  rig.modelQuality="grand-arena-v3.3";
   rig.bodyShell.visible=true;
   root.userData={rig,baseScale:1,gear:2,haki:false,modelQuality:"grand-arena-v3"};
   return root;
