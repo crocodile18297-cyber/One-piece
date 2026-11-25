@@ -12,6 +12,7 @@ function mesh(g,m,parent,x,y,z,sx=1,sy=1,sz=1){const o=new THREE.Mesh(g,m);o.pos
 function pirate(){
  const root=new THREE.Group(),rig={};
  const skin=mat(0xf0b98e),skinShade=mat(0xd99069),red=mat(0xc8322b),redDark=mat(0x87231f),blue=mat(0x2860a6),blueDark=mat(0x173d72),straw=mat(0xe7b94e),strawDark=mat(0x9d6b2d),black=mat(0x211e22),white=mat(0xf5eee0),gold=mat(0xe9b84f,.28,.65),hairMat=mat(0x241c19),armamentMat=mat(0x171820,.32,.25),cloudMat=mat(0xf7f5ef,.85),steamMat=new THREE.MeshBasicMaterial({color:0xe9e9e9,transparent:true,opacity:.42});
+ rig.materials={skin,armament:armamentMat};
  rig.torso=new THREE.Group();rig.torso.position.y=1.35;root.add(rig.torso);
  mesh(new THREE.CylinderGeometry(.34,.43,.78,16),skin,rig.torso,0,.18,0);
  rig.vest=mesh(new THREE.BoxGeometry(.78,.8,.38),red,rig.torso,0,.18,-.015);
@@ -92,13 +93,14 @@ function applyCharacterGear(character,n){
  if(n===3){r.giantArm.visible=true;r.giantArm.rotation.z=-.15}
  if(n===5){r.cloudRing.visible=true;r.cloudRing.rotation.z=0}
  r.vest.visible=n!==4&&n!==5;
- r.gear4.traverse(o=>{if(o.isMesh&&o.material?.color&&o.material!==armamentMat)o.material.color.setHex(n===4?0x9f2732:0x9f2732)});
+ // Gear materials are created once on the rig; no external closure variables are needed.
 }
 function setCharacterHaki(character,on){
  const r=character.userData.rig;if(!r)return;character.userData.haki=on;
- r.armParts.forEach(p=>p.material=on?armamentMat:skin);
- r.fists.forEach(p=>p.material=on?armamentMat:skin);
- r.shoulders.forEach(p=>p.material=on?armamentMat:skin);
+ const material=on?r.materials.armament:r.materials.skin;
+ r.armParts.forEach(p=>p.material=material);
+ r.fists.forEach(p=>p.material=material);
+ r.shoulders.forEach(p=>p.material=material);
 }
 
 const local=pirate();scene.add(local);const others=new Map(),effects=[];
