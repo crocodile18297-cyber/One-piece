@@ -22,12 +22,13 @@ function applyCharacterGear(character,n){
  r.bodyShell.visible=n!==4&&n!==5;
  r.nikaLegs.visible=n===5;
  r.nikaSleeves.forEach(sleeve=>sleeve.visible=n===5);
- r.hat.visible=n!==5;
+ r.hat.visible=n!==4&&n!==5;
  r.hair.visible=n!==5;
  r.whiteHair.visible=n===5;
  r.nikaSmile.visible=n===5;
  r.vest.visible=n!==4&&n!==5;
- r.shorts.visible=n!==5;
+ r.shorts.visible=n!==4&&n!==5;
+ r.sash.visible=n!==4;
  r.cloudRing.visible=n===5;
  r.gear3Steam.visible=n===3;
  r.gear4Smoke.visible=n===4;
@@ -175,8 +176,8 @@ function animate(){
  rig.legs.forEach((leg,i)=>{leg.rotation.z=onGround&&moving?(i===0?-.035:.035):0});
  rig.head.rotation.y=Math.sin(t*1.4)*.035;rig.head.rotation.x=air?-.12:0;
  // Gear-specific idle and transformation motion.
- if(gear===2){rig.gear2.rotation.y=Math.sin(t*1.6)*.045;rig.gear2.scale.setScalar(1+.018*Math.sin(t*5))}
- if(gear===5){rig.cloudRing.rotation.z=t*.55;rig.cloudRing.scale.setScalar(1+.055*Math.sin(t*4));rig.gear5.rotation.y=Math.sin(t*1.7)*.025;rig.whiteHair.rotation.z=Math.sin(t*2.4)*.035;rig.cloudMantle.rotation.y=Math.sin(t*1.35)*.05;rig.nikaLightning.rotation.y=-t*.8}
+ if(gear===2){rig.gear2.rotation.y=Math.sin(t*1.6)*.045;rig.gear2.scale.setScalar(1+.018*Math.sin(t*5));rig.hat.rotation.z=Math.sin(t*2.2)*.006}
+ if(gear===5){rig.cloudRing.rotation.z=t*.55;rig.cloudRing.scale.setScalar(1+.055*Math.sin(t*4));rig.gear5.rotation.y=Math.sin(t*1.7)*.025;rig.whiteHair.rotation.z=Math.sin(t*2.4)*.035;rig.cloudMantle.rotation.y=Math.sin(t*1.35)*.05;rig.cloudMantle.rotation.z=Math.sin(t*2.1)*.025;rig.nikaLightning.rotation.y=-t*.8}
  if(gear===3){rig.giantArm.rotation.z=-.15+Math.sin(t*2)*.035;rig.giantArm.rotation.x=Math.sin(t*1.6)*.045;rig.giantArm.scale.set(1,1+(pulse>0?.18*pulse:0),1);rig.gear3Steam.rotation.y=Math.sin(t*1.2)*.08}
  if(gear===4){rig.gear4.rotation.y=Math.sin(t*2)*.025;rig.gear4Smoke.rotation.y=Math.sin(t*1.6)*.08;rig.gear4Arms.forEach((a,i)=>{a.rotation.z=Math.sin(t*3+i*Math.PI)*.12;a.rotation.x=Math.cos(t*2.5+i*Math.PI)*.08})}
  }
@@ -193,8 +194,8 @@ function animate(){
   if(m.userData.blocking){rr.arms[0].rotation.x=-1.05;rr.arms[1].rotation.x=-1.05}
   else if(ap>0){rr.arms[1].rotation.x=-1.6*ap;rr.arms[1].scale.y=1+.45*ap;rr.torso.rotation.y=Math.sin(aa*Math.PI)*.22}
   else {rr.arms[0].rotation.x=-otherStep*.65;rr.arms[1].rotation.x=otherStep*.65;rr.arms[1].scale.y=THREE.MathUtils.lerp(rr.arms[1].scale.y,1,.25)}
-  if(m.userData.gear===2){rr.gear2.rotation.y=Math.sin(t*1.6)*.045;rr.gear2.scale.setScalar(1+.018*Math.sin(t*5))}
-   if(m.userData.gear===5){rr.cloudRing.rotation.z=t*.5;rr.whiteHair.rotation.z=Math.sin(t*2.4)*.03;rr.cloudMantle.rotation.y=Math.sin(t*1.35)*.05;rr.nikaLightning.rotation.y=-t*.8}
+  if(m.userData.gear===2){rr.gear2.rotation.y=Math.sin(t*1.6)*.045;rr.gear2.scale.setScalar(1+.018*Math.sin(t*5));rr.hat.rotation.z=Math.sin(t*2.2)*.006}
+   if(m.userData.gear===5){rr.cloudRing.rotation.z=t*.5;rr.whiteHair.rotation.z=Math.sin(t*2.4)*.03;rr.cloudMantle.rotation.y=Math.sin(t*1.35)*.05;rr.cloudMantle.rotation.z=Math.sin(t*2.1)*.025;rr.nikaLightning.rotation.y=-t*.8}
    else if(m.userData.gear===3){rr.giantArm.rotation.z=-.15+Math.sin(t*2)*.03;rr.gear3Steam.rotation.y=Math.sin(t*1.2)*.08}
    else if(m.userData.gear===4){rr.gear4.rotation.y=Math.sin(t*2)*.02;rr.gear4Smoke.rotation.y=Math.sin(t*1.6)*.08;rr.gear4Arms.forEach((a,i)=>{a.rotation.z=Math.sin(t*3+i*Math.PI)*.1;a.rotation.x=Math.cos(t*2.5+i*Math.PI)*.06})}
   }
