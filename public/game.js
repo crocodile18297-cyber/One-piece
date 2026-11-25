@@ -79,8 +79,25 @@ socket.on("boss-defeated",d=>{bossRoot.visible=false;if(d.by===myId)toast("БО�
 socket.on("progress",progressUpdate);
 socket.on("conqueror-wave",d=>{const r=new THREE.Mesh(new THREE.TorusGeometry(.7,.12,10,48),new THREE.MeshBasicMaterial({color:0x8d5bff,transparent:true,opacity:.9}));r.rotation.x=Math.PI/2;r.position.set(d.x,.35,d.z);scene.add(r);effects.push({mesh:r,dir:new THREE.Vector3(),life:45,speed:.16});});
 let myId=null,gear=2,hp=100,yaw=0,cameraYaw=0,cameraPitch=.48,cameraDistance=11.5,velocityY=0,onGround=true;const keys={};let lastSend=0,attackLock=0,combo=0,comboTimer=0;
-function aura(p,n){if(p.userData.aura){p.remove(p.userData.aura);p.userData.aura.geometry.dispose()}if(n===2)return;const color=n===5?0xffffff:n===4?0x9c59ff:0xff9a39;const a=new THREE.Mesh(new THREE.TorusGeometry(n===3?1.1:.85,.045,8,40),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.8}));a.rotation.x=Math.PI/2;a.position.y=.16;p.add(a);p.userData.aura=a}
-function setGear(n){gear=n;local.userData.gear=n;applyCharacterGear(local,n);setCharacterHaki(local,hakiOn);aura(local,n);document.querySelectorAll(".gear").forEach(b=>b.classList.toggle("active",+b.dataset.gear===n));document.getElementById("gearLabel").textContent="GEAR "+n+" · "+({2:"BASE",3:"GIANT",4:"BOUND-MAN",5:"NIKA"}[n]);socket.emit("move",{x:local.position.x,z:local.position.z,gear:n});toast("GEAR "+n+" ACTIVATED")}
+function aura(p,n){
+ if(p.userData.aura){p.remove(p.userData.aura);p.userData.aura.geometry.dispose();p.userData.aura.material.dispose()}
+ if(n===2){p.userData.aura=null;return}
+ const color=n===5?0xffffff:n===4?0x9c59ff:0xff9a39;
+ const a=new THREE.Mesh(new THREE.TorusGeometry(n===3?1.14:n===4?1.02:.86,.045,8,56),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.82,emissive:color,emissiveIntensity:.22}));
+ a.rotation.x=Math.PI/2;a.position.y=.12;p.add(a);p.userData.aura=a;
+}
+function transformBurst(n){
+ const color=n===5?0xffffff:n===4?0x9d59ff:n===3?0xffc46a:0xff5a37;
+ const ring=new THREE.Mesh(new THREE.TorusGeometry(.5,.09,12,48),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.9,emissive:color,emissiveIntensity:.32}));
+ ring.rotation.x=Math.PI/2;ring.position.set(local.position.x,.12,local.position.z);ring.scale.setScalar(.65);scene.add(ring);effects.push({mesh:ring,dir:new THREE.Vector3(),life:32,speed:.095});
+ for(let i=0;i<12;i++){
+  const a=i/12*Math.PI*2,rad=.65+Math.random()*.2;
+  const orb=new THREE.Mesh(new THREE.SphereGeometry(.09+Math.random()*.045,12,10),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.9,emissive:color,emissiveIntensity:.35}));
+  orb.position.set(local.position.x+Math.cos(a)*rad,.25+Math.random()*1.4,local.position.z+Math.sin(a)*rad);scene.add(orb);
+  effects.push({mesh:orb,dir:new THREE.Vector3(Math.cos(a)*.12,.035+Math.random()*.05,Math.sin(a)*.12),life:25,speed:.08});
+ }
+}
+function setGear(n){gear=THREE.MathUtils.clamp(Math.round(n),2,5);local.userData.gear=gear;applyCharacterGear(local,gear);setCharacterHaki(local,hakiOn);aura(local,gear);transformBurst(gear);document.querySelectorAll(".gear").forEach(b=>b.classList.toggle("active",+b.dataset.gear===gear));document.getElementById("gearLabel").textContent="GEAR "+gear+" · "+({2:"BASE / RED HAWK",3:"GIANT",4:"BOUND-MAN",5:"NIKA"}[gear]);socket.emit("move",{x:local.position.x,z:local.position.z,gear});toast("GEAR "+gear+" ACTIVATED")}
 document.querySelectorAll(".gear").forEach(b=>b.onclick=()=>setGear(+b.dataset.gear));
 function toast(s){const e=document.getElementById("toast");e.textContent=s;e.style.opacity=1;clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.opacity=0,1250)}
 function addOther(p){if(others.has(p.id))return;const m=pirate();m.position.set(p.x||0,0,p.z||0);m.rotation.y=Number(p.yaw)||0;m.userData.targetYaw=Number(p.yaw)||0;scene.add(m);others.set(p.id,m);updateOnline();if(p.gear){applyCharacterGear(m,p.gear);aura(m,p.gear)}}
@@ -131,13 +148,7 @@ function animate(){
  if(!wasGrounded&&onGround)local.userData.landPulse=1;if(!wasGrounded&&onGround){const shock=new THREE.Mesh(new THREE.RingGeometry(.25,1.05,32),new THREE.MeshBasicMaterial({color:gear===5?0xffffff:0xe7b94e,transparent:true,opacity:.7,side:THREE.DoubleSide}));shock.rotation.x=-Math.PI/2;shock.position.set(local.position.x,.04,local.position.z);scene.add(shock);effects.push({mesh:shock,dir:new THREE.Vector3(),life:18,speed:0});}
  local.userData.landPulse=Math.max(0,(local.userData.landPulse||0)-dt*2.8);
  const land=local.userData.landPulse||0,air=onGround?0:1;
- if(rig.isGLB){
-  local.userData.running=Math.hypot(strafe,forward)>.78;
-  updateCharacterAnimation(local,dt,moving,onGround,blocking);
-  if(gear===5){rig.cloudRing.rotation.z=t*.55;rig.gear5.position.y=1.55+Math.sin(t*3.2)*.035;rig.whiteHair.rotation.z=Math.sin(t*2.4)*.035}
-  if(gear===3){rig.giantArm.rotation.z=-.15+Math.sin(t*2)*.035;rig.giantArm.rotation.x=Math.sin(t*1.6)*.045}
-  if(gear===4)rig.gear4.rotation.y=Math.sin(t*2)*.025;
- }else{
+ {
  // Body bounce, squash and stretch on take-off / landing.
  rig.torso.position.y=1.35+(onGround?Math.abs(Math.sin(t*(moving?22:2)))*.025:Math.sin(t*9)*.045);
  rig.torso.scale.y=1+air*.09-land*.12;rig.torso.scale.x=1-air*.045+land*.06;rig.torso.scale.z=1-air*.045+land*.06;
@@ -161,7 +172,8 @@ function animate(){
  rig.legs.forEach((leg,i)=>{leg.rotation.z=onGround&&moving?(i===0?-.035:.035):0});
  rig.head.rotation.y=Math.sin(t*1.4)*.035;rig.head.rotation.x=air?-.12:0;
  // Gear-specific idle and transformation motion.
- if(gear===5){rig.cloudRing.rotation.z=t*.55;rig.cloudRing.scale.setScalar(1+.055*Math.sin(t*4));rig.gear5.rotation.y=Math.sin(t*1.7)*.025;rig.gear5.position.y=Math.sin(t*3.2)*.025;rig.whiteHair.rotation.z=Math.sin(t*2.4)*.035;rig.cloudMantle.rotation.y=Math.sin(t*1.35)*.05;rig.nikaLightning.rotation.y=-t*.8}
+ if(gear===2){rig.gear2.rotation.y=Math.sin(t*1.6)*.045;rig.gear2.scale.setScalar(1+.018*Math.sin(t*5))}
+ if(gear===5){rig.cloudRing.rotation.z=t*.55;rig.cloudRing.scale.setScalar(1+.055*Math.sin(t*4));rig.gear5.rotation.y=Math.sin(t*1.7)*.025;rig.whiteHair.rotation.z=Math.sin(t*2.4)*.035;rig.cloudMantle.rotation.y=Math.sin(t*1.35)*.05;rig.nikaLightning.rotation.y=-t*.8}
  if(gear===3){rig.giantArm.rotation.z=-.15+Math.sin(t*2)*.035;rig.giantArm.rotation.x=Math.sin(t*1.6)*.045;rig.giantArm.scale.set(1,1+(pulse>0?.18*pulse:0),1);rig.gear3Steam.rotation.y=Math.sin(t*1.2)*.08}
  if(gear===4){rig.gear4.rotation.y=Math.sin(t*2)*.025;rig.gear4Smoke.rotation.y=Math.sin(t*1.6)*.08;rig.gear4Arms.forEach((a,i)=>{a.rotation.z=Math.sin(t*3+i*Math.PI)*.12;a.rotation.x=Math.cos(t*2.5+i*Math.PI)*.08})}
  }
@@ -171,22 +183,17 @@ function animate(){
   if(m.userData.target){m.position.lerp(m.userData.target,.2);if(Number.isFinite(m.userData.targetYaw)){const da=Math.atan2(Math.sin(m.userData.targetYaw-m.rotation.y),Math.cos(m.userData.targetYaw-m.rotation.y));m.rotation.y+=da*.2}}
   const rr=m.userData.rig;if(!rr)continue;
   const otherMoving=!!(m.userData.target&&m.position.distanceTo(m.userData.target)>.025);
-  if(rr.isGLB){
-   m.userData.running=otherMoving;
-   updateCharacterAnimation(m,dt,otherMoving,true,!!m.userData.blocking);
-   if(m.userData.gear===5){rr.cloudRing.rotation.z=t*.5;rr.gear5.position.y=1.55+Math.sin(t*3)*.035}
-   else if(m.userData.gear===3){rr.giantArm.rotation.z=-.15+Math.sin(t*2)*.03;rr.gear3Steam.rotation.y=Math.sin(t*1.2)*.08;}
-   else if(m.userData.gear===4){rr.gear4.rotation.y=Math.sin(t*2)*.02;rr.gear4Smoke.rotation.y=Math.sin(t*1.6)*.08;}
-  }else{
+  {
   const otherStep=otherMoving?Math.sin(t*9)*.3:Math.sin(t*1.8)*.018;
   rr.legs[0].rotation.x=otherStep;rr.legs[1].rotation.x=-otherStep;
   const am=m.userData.attackMotion,aa=am?(now-am.started)/am.duration:2,ap=am&&aa<1?Math.sin(Math.max(0,aa)*Math.PI):0;
   if(m.userData.blocking){rr.arms[0].rotation.x=-1.05;rr.arms[1].rotation.x=-1.05}
   else if(ap>0){rr.arms[1].rotation.x=-1.6*ap;rr.arms[1].scale.y=1+.45*ap;rr.torso.rotation.y=Math.sin(aa*Math.PI)*.22}
   else {rr.arms[0].rotation.x=-otherStep*.65;rr.arms[1].rotation.x=otherStep*.65;rr.arms[1].scale.y=THREE.MathUtils.lerp(rr.arms[1].scale.y,1,.25)}
-  if(m.userData.gear===5){rr.cloudRing.rotation.z=t*.5;rr.cloudMantle.rotation.y=Math.sin(t*1.35)*.05;rr.nikaLightning.rotation.y=-t*.8}
-  else if(m.userData.gear===3)rr.giantArm.rotation.z=-.15+Math.sin(t*2)*.03;
-  else if(m.userData.gear===4)rr.gear4.rotation.y=Math.sin(t*2)*.02;
+  if(m.userData.gear===2){rr.gear2.rotation.y=Math.sin(t*1.6)*.045;rr.gear2.scale.setScalar(1+.018*Math.sin(t*5))}
+   if(m.userData.gear===5){rr.cloudRing.rotation.z=t*.5;rr.whiteHair.rotation.z=Math.sin(t*2.4)*.03;rr.cloudMantle.rotation.y=Math.sin(t*1.35)*.05;rr.nikaLightning.rotation.y=-t*.8}
+   else if(m.userData.gear===3){rr.giantArm.rotation.z=-.15+Math.sin(t*2)*.03;rr.gear3Steam.rotation.y=Math.sin(t*1.2)*.08}
+   else if(m.userData.gear===4){rr.gear4.rotation.y=Math.sin(t*2)*.02;rr.gear4Smoke.rotation.y=Math.sin(t*1.6)*.08;rr.gear4Arms.forEach((a,i)=>{a.rotation.z=Math.sin(t*3+i*Math.PI)*.1;a.rotation.x=Math.cos(t*2.5+i*Math.PI)*.06})}
   }
  }
  if(t-lastSend>.06){socket.emit("move",{x:local.position.x,y:local.position.y,z:local.position.z,yaw,gear});lastSend=t}
