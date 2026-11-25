@@ -98,17 +98,18 @@ export function createPirate() {
 
   // Main torso uses a tapered lathe silhouette, not a stack of round toy parts.
   rig.torso=new THREE.Group(); rig.torso.position.y=1.92; root.add(rig.torso);
-  lathe(rig.torso,M.skin,[[.20,-.57],[.29,-.48],[.33,-.25],[.37,.02],[.42,.28],[.39,.48],[.30,.62],[.17,.68],[.0,.68]],[1,1,.72]);
-  sphere(rig.torso,M.skinHi,[0,.36,.045],[.31,.23,.225],34);
+  rig.bodyShell=new THREE.Group(); rig.torso.add(rig.bodyShell);
+  lathe(rig.bodyShell,M.skin,[[.20,-.57],[.29,-.48],[.33,-.25],[.37,.02],[.42,.28],[.39,.48],[.30,.62],[.17,.68],[.0,.68]],[1,1,.72]);
+  sphere(rig.bodyShell,M.skinHi,[0,.36,.045],[.31,.23,.225],34);
   for(const side of [-1,1]){
-    sphere(rig.torso,M.skin,[side*.18,.24,.19],[.19,.16,.09],26);
-    sphere(rig.torso,M.skinHi,[side*.17,.36,.145],[.17,.035,.055],20);
-    sphere(rig.torso,M.skinShade,[side*.30,-.08,.13],[.045,.17,.055],18);
-    sphere(rig.torso,M.skin,[side*.13,-.04,.205],[.095,.065,.034],20);
-    sphere(rig.torso,M.skin,[side*.13,-.19,.19],[.09,.06,.032],20);
-    tube(rig.torso,M.skinShade,[[side*.02,.15,.255],[side*.02,-.02,.25],[side*.02,-.22,.22]],.007,18);
+    sphere(rig.bodyShell,M.skin,[side*.18,.24,.19],[.19,.16,.09],26);
+    sphere(rig.bodyShell,M.skinHi,[side*.17,.36,.145],[.17,.035,.055],20);
+    sphere(rig.bodyShell,M.skinShade,[side*.30,-.08,.13],[.045,.17,.055],18);
+    sphere(rig.bodyShell,M.skin,[side*.13,-.04,.205],[.095,.065,.034],20);
+    sphere(rig.bodyShell,M.skin,[side*.13,-.19,.19],[.09,.06,.032],20);
+    tube(rig.bodyShell,M.skinShade,[[side*.02,.15,.255],[side*.02,-.02,.25],[side*.02,-.22,.22]],.007,18);
   }
-  tube(rig.torso,M.skinShade,[[-.27,.39,.12],[0,.46,.17],[.27,.39,.12]],.009,24);
+  tube(rig.bodyShell,M.skinShade,[[-.27,.39,.12],[0,.46,.17],[.27,.39,.12]],.009,24);
 
   // Neck, collarbone and shoulder line.
   capsule(rig.torso,M.skin,[0,.69,0],.105,.13);
@@ -219,7 +220,7 @@ export function createPirate() {
   }
 
   // Gear 2: heat haze and narrow smoke trails are kept behind the silhouette.
-  rig.gear2=new THREE.Group(); root.add(rig.gear2);
+  rig.gear2=new THREE.Group(); rig.gear2.position.y=.35; root.add(rig.gear2);
   for(const side of [-1,1]){
     tube(rig.gear2,M.flame,[[side*.48,.82,-.12],[side*.62,1.15,-.22],[side*.50,1.48,-.24],[side*.68,1.78,-.2]],.018,32);
     tube(rig.gear2,M.flameHi,[[side*.45,1.0,-.15],[side*.52,1.22,-.20],[side*.46,1.4,-.22]],.011,24);
@@ -228,7 +229,7 @@ export function createPirate() {
 
   // Gear 3: separate oversized right fist and forearm, with defined knuckles.
   rig.gear3=new THREE.Group(); root.add(rig.gear3);
-  rig.giantArm=new THREE.Group(); rig.giantArm.position.set(.64,1.90,.08); rig.gear3.add(rig.giantArm);
+  rig.giantArm=new THREE.Group(); rig.giantArm.position.set(.64,2.34,.08); rig.gear3.add(rig.giantArm);
   capsule(rig.giantArm,M.skin,[0,-.22,.02],.26,.35);
   sphere(rig.giantArm,M.skinHi,[.03,-.36,.10],[.24,.26,.19],28);
   capsule(rig.giantArm,M.skin,[.04,-.67,.12],.34,.32);
@@ -251,7 +252,7 @@ export function createPirate() {
 
   // Gear 4: Boundman. Expanded chest silhouette, Haki-coated independent arms,
   // patterned flame markings, purple sash and inflated calves.
-  rig.gear4=new THREE.Group(); root.add(rig.gear4);
+  rig.gear4=new THREE.Group(); rig.gear4.position.y=.45; root.add(rig.gear4);
   lathe(rig.gear4,M.red,[[.25,.70],[.42,.82],[.55,1.10],[.62,1.42],[.56,1.74],[.43,2.02],[.24,2.12],[0,2.12]],[1,1,.78]);
   sphere(rig.gear4,M.redHi,[0,1.72,.20],[.43,.32,.22],36);
   for(const side of [-1,1]){
@@ -355,7 +356,8 @@ export function createPirate() {
   rig.whiteHair.visible=false;
   rig.nikaSmile.visible=false;
   rig.baseScale=1;
-  rig.modelQuality="grand-arena-v3";
+  rig.modelQuality="grand-arena-v3.1";
+  rig.bodyShell.visible=true;
   root.userData={rig,baseScale:1,gear:2,haki:false,modelQuality:"grand-arena-v3"};
   return root;
 }
