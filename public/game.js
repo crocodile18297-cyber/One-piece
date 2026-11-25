@@ -66,7 +66,7 @@ function bossBurst(){const ring=new THREE.Mesh(new THREE.TorusGeometry(1,.12,10,
 socket.on("boss-state",d=>{bossHp=d.hp;bossMax=d.maxHp;bossPhase=d.phase;bossRoot.position.set(d.x,0,d.z);updateBossHud();bossRoot.visible=d.hp>0;});
 socket.on("boss-warning",()=>{bossRoot.traverse(o=>{if(o.material?.emissive){o.material.emissive.setHex(0xff3b24);o.material.emissiveIntensity=1}});toast("БОСС ГОТОВИТ УДАР! ОТОЙДИ!");});
 socket.on("boss-slam",()=>{bossBurst();bossRoot.traverse(o=>{if(o.material?.emissive)o.material.emissive.setHex(0x000000)})});
-socket.on("boss-defeated",()=>{bossRoot.visible=false;skillPoints++;socket.emit("progress-claim");toast("БОСС ПОБЕЖДЁН! +1 ОЧКО НАВЫКА")});
+socket.on("boss-defeated",d=>{bossRoot.visible=false;if(d.by===myId)toast("БОСС ПОБЕЖДЁН! +1 ОЧКО НАВЫКА");else toast("БОСС ПОВЕРЖЕН!")});
 socket.on("progress",progressUpdate);
 socket.on("conqueror-wave",d=>{const r=new THREE.Mesh(new THREE.TorusGeometry(.7,.12,10,48),new THREE.MeshBasicMaterial({color:0x8d5bff,transparent:true,opacity:.9}));r.rotation.x=Math.PI/2;r.position.set(d.x,.35,d.z);scene.add(r);effects.push({mesh:r,dir:new THREE.Vector3(),life:45,speed:.16});});
 let myId=null,gear=2,hp=100,yaw=0,velocityY=0,onGround=true;const keys={};let lastSend=0,attackLock=0,combo=0,comboTimer=0;
@@ -92,7 +92,7 @@ function attack(kind="pistol"){const now=performance.now();if(now<attackLock)ret
  socket.emit("attack",{kind,yaw});}
 document.getElementById("specialBtn").onclick=()=>{if(!unlockedSkills.includes("conqueror"))return;if(stamina<32){toast("НУЖНО 32 ВЫНОСЛИВОСТИ");return}socket.emit("special",{});updateStamina(stamina-32);toast("КOРОЛЕВСКОЕ ХАКИ!");};document.getElementById("pistol").onclick=()=>attack("pistol");document.getElementById("redhawk").onclick=()=>attack("redhawk");document.getElementById("gatling").onclick=()=>attack("gatling");document.getElementById("kong").onclick=()=>attack("kong");
 addEventListener("pointerdown",e=>{if(e.target===renderer.domElement)attack("pistol")});
-addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(["1","2","3","4"].includes(e.key))setGear(+e.key+1);if(e.key.toLowerCase()==="g")attack("gatling");if(e.key.toLowerCase()==="h")attack("kong");if(e.key.toLowerCase()==="f")attack("redhawk");if(e.key.toLowerCase()==="r")attack("rifle");if(e.key.toLowerCase()==="q")setBlock(true);if(e.key.toLowerCase()==="e")toggleHaki();if(e.key==="Shift")dodge()});
+addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(["1","2","3","4"].includes(e.key))setGear(+e.key+1);if(e.key.toLowerCase()==="g")attack("gatling");if(e.key.toLowerCase()==="h")attack("kong");if(e.key.toLowerCase()==="f")attack("redhawk");if(e.key.toLowerCase()==="v")document.getElementById("specialBtn").click();if(e.key.toLowerCase()==="r")attack("rifle");if(e.key.toLowerCase()==="q")setBlock(true);if(e.key.toLowerCase()==="e")toggleHaki();if(e.key==="Shift")dodge()});
 addEventListener("keyup",e=>{keys[e.key.toLowerCase()]=false;if(e.key.toLowerCase()==="q")setBlock(false)});
 let joy={x:0,y:0},touching=false;const stick=document.getElementById("stick"),knob=document.getElementById("knob");
 function joyMove(e){const r=stick.getBoundingClientRect();let dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),l=Math.hypot(dx,dy),max=36;if(l>max){dx=dx/l*max;dy=dy/l*max}joy.x=dx/max;joy.y=dy/max;knob.style.transform="translate("+dx+"px,"+dy+"px)"}
