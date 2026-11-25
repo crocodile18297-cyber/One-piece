@@ -144,13 +144,13 @@ export function updateCharacterAnimation(actor, delta, moving, grounded, blockin
   const hit = actor.userData.attackMotion;
   const hitLive = hit && performance.now() - hit.started < hit.duration;
   let animation = "idle", loop = true;
-  if (hitLive) {
+  if (hitLive && hit.kind === "dodge") { animation = "dodge"; loop = false; }
+  else if (hitLive) {
     animation = hit.kind === "gatling" ? "gatling" :
       (hit.kind === "kong" || hit.kind === "redhawk") ? "heavyPunch" :
       hit.kind === "rifle" ? "kick" : "punch";
     loop = false;
-  } else if (hitLive && hit.kind === "dodge") { animation = "dodge"; loop = false; }
-  else if (!grounded) { animation = "jump"; loop = false; }
+  } else if (!grounded) { animation = "jump"; loop = false; }
   else if (blocking) animation = "block";
   else if (moving) animation = actor.userData.running ? "run" : "walk";
   play(actor, animation, loop);
