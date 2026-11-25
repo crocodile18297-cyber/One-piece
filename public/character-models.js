@@ -172,7 +172,7 @@ export function createPirate() {
     sphere(arm,M.skinLight,[side*.02,-.55,.125],[.085,.18,.055],20);
     const wrist=torus(arm,M.skinShade,[0,-.735,.025],.105,.016,[Math.PI/2,0,0],24);
     const hand=makeHand(arm,1,M.skin); hand.position.set(0,-.82,.055);
-    rig.armParts.push(upper,fore); rig.fists.push(hand.children[0]); rig.shoulders.push(shoulder);
+    rig.armParts.push(upper,fore); rig.fists.push(hand); rig.shoulders.push(shoulder);
     arm.userData={upper,fore,elbow,hand};
   }
 
